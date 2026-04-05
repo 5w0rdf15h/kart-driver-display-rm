@@ -6,6 +6,7 @@
 document.addEventListener('alpine:init', () => {
   Alpine.data('kartDisplay', () => ({
     view: 'settings',  // settings | connecting | race
+    displayMode: localStorage.getItem('kd_mode') || 'ta',  // ta | race
     flashType: null,
     connectStatus: '',
     demoInterval: null,
@@ -72,6 +73,34 @@ document.addEventListener('alpine:init', () => {
       const s = this.race.consistency;
       if (s <= 0) return '';
       return s < 0.5 ? 'consistency-good' : s < 1.0 ? 'consistency-mid' : 'consistency-bad';
+    },
+
+    get sortedCompetitors() {
+      return Object.values(this._competitors)
+        .filter(c => c.pos > 0)
+        .sort((a, b) => a.pos - b.pos);
+    },
+
+    get visibleCompetitors() {
+      const all = this.sortedCompetitors;
+      if (all.length <= 5) return all;
+      const myIdx = all.findIndex(c => c.rn === this.race.kartNumber);
+      if (myIdx === -1) return all.slice(0, 5);
+      // P1: show 0-4, P2: show 0-4, P3: show 0-4, P4+: center driver with 3 above
+      let start;
+      if (myIdx <= 2) {
+        start = 0;
+      } else if (myIdx >= all.length - 2) {
+        start = all.length - 5;
+      } else {
+        start = myIdx - 2;
+      }
+      return all.slice(start, start + 5);
+    },
+
+    toggleDisplayMode() {
+      this.displayMode = this.displayMode === 'ta' ? 'race' : 'ta';
+      localStorage.setItem('kd_mode', this.displayMode);
     },
 
     t(key) {
@@ -339,18 +368,22 @@ document.addEventListener('alpine:init', () => {
           }
         }
 
-        // Track all competitors for gap-behind calculation
-        if (this.race.kartNumber && rn !== this.race.kartNumber) {
-          // Check if this car is directly behind us
-          if (data.pld !== undefined && data.cs?.rn) {
-            // Store competitor positions for gap calc
-            if (!this._competitors) this._competitors = {};
-            this._competitors[rn] = { pos: data.pos, pld: data.pld };
-
-            // Find car directly behind us
+        // Track all competitors
+        if (rn) {
+          if (!this._competitors) this._competitors = {};
+          this._competitors[rn] = {
+            rn: rn,
+            fn: fn,
+            pos: data.pos || 0,
+            bestLap: data.cs?.bl || data.bl || 0,
+            lastLap: data.cs?.ll || data.ll || 0,
+            gap: data.pld ? (data.pld / 1000) : null,
+          };
+          // Gap behind: find car directly behind our position
+          if (this.race.kartNumber && rn !== this.race.kartNumber) {
             const myPos = this.race.position;
             if (data.pos === myPos + 1) {
-              this.race.gapBehind = Math.abs(data.pld / 1000);
+              this.race.gapBehind = data.pld ? Math.abs(data.pld / 1000) : null;
             }
           }
         }
@@ -391,10 +424,21 @@ document.addEventListener('alpine:init', () => {
       this.race.isPersonalBest = false;
       this.race.penaltyTime = 0;
 
+      // Demo competitors for leaderboard
+      this._competitors = {
+        '1':  { rn: '1',  fn: 'Racer 01', pos: 1, bestLap: 28249, lastLap: 28670, gap: null },
+        '3':  { rn: '3',  fn: 'Racer 03', pos: 2, bestLap: 28359, lastLap: 29100, gap: 1.7 },
+        '10': { rn: '10', fn: this.settings.name || 'You', pos: 3, bestLap: 0, lastLap: 0, gap: 3.2 },
+        '7':  { rn: '7',  fn: 'Racer 07', pos: 4, bestLap: 29878, lastLap: 31200, gap: 8.1 },
+        '12': { rn: '12', fn: 'Racer 12', pos: 5, bestLap: 32211, lastLap: 34500, gap: 12.4 },
+        '6':  { rn: '6',  fn: 'Racer 06', pos: 6, bestLap: 33500, lastLap: 35200, gap: 18.3 },
+        '9':  { rn: '9',  fn: 'Racer 09', pos: 7, bestLap: 34100, lastLap: 36800, gap: 25.7 },
+      };
+
       // Demo: lap every 3 seconds (accelerated), countdown scaled to match
       let lapCount = 0;
       const demoLaps = this.generateDemoLaps(baseLap, 18);
-      const demoRealDuration = demoLaps.length * 3; // ~54 seconds real time
+      const demoRealDuration = demoLaps.length * 4 + 4; // ~76 seconds real time (3-5s per lap + buffer)
       const countdownStep = Math.round(this.race.timeToGo / demoRealDuration); // ms per tick
 
       // Countdown ticker — 1 tick per second, scaled to fill the bar across the demo
@@ -412,6 +456,25 @@ document.addEventListener('alpine:init', () => {
         const lapData = demoLaps[lapCount];
         this.processLapCrossing(lapData);
         lapCount++;
+
+        // Simulate other competitors' progress
+        for (const rn of Object.keys(this._competitors)) {
+          if (rn === this.race.kartNumber) continue;
+          const c = this._competitors[rn];
+          c.lastLap = c.bestLap + Math.round((Math.random() - 0.3) * 2000);
+          if (c.lastLap < c.bestLap) c.bestLap = c.lastLap;
+          if (c.gap !== null) c.gap = Math.max(0.1, c.gap + (Math.random() - 0.45) * 3);
+        }
+        // Update driver's gap based on improvement
+        const me = this._competitors[this.race.kartNumber];
+        if (me) {
+          me.gap = Math.max(0, (me.gap ?? 3.2) + (Math.random() - 0.6) * 1.5);
+        }
+        // Recalculate positions by gap (lower gap = higher position)
+        const all = Object.values(this._competitors).sort((a, b) => (a.gap ?? -1) - (b.gap ?? -1));
+        all.forEach((c, i) => { c.pos = i + 1; });
+        // Sync driver's position from leaderboard
+        if (me) this.race.position = me.pos;
 
         // Next lap in 3-5 seconds (demo speed)
         const nextDelay = 3000 + Math.random() * 2000;
@@ -476,6 +539,12 @@ document.addEventListener('alpine:init', () => {
       this.race.lastLap = lapTime;
       this.race.myLaps++;
       this.race.position = position;
+
+      // Keep our own competitor entry in sync
+      if (this.race.kartNumber && this._competitors[this.race.kartNumber]) {
+        this._competitors[this.race.kartNumber].pos = position || this._competitors[this.race.kartNumber].pos;
+        this._competitors[this.race.kartNumber].lastLap = lapTime;
+      }
       this.race.gapAhead = gapAhead;
       this.race.gapBehind = gapBehind;
       if (flag) {
@@ -495,6 +564,10 @@ document.addEventListener('alpine:init', () => {
       if (this.race.bestLap === 0 || lapTime < this.race.bestLap) {
         this.race.bestLap = lapTime;
         this.race.isPersonalBest = this.race.myLaps > 1;
+        // Update best lap in competitor entry
+        if (this.race.kartNumber && this._competitors[this.race.kartNumber]) {
+          this._competitors[this.race.kartNumber].bestLap = lapTime;
+        }
       } else {
         this.race.isPersonalBest = false;
       }
@@ -546,14 +619,15 @@ document.addEventListener('alpine:init', () => {
         setTimeout(() => { this.race.isPersonalBest = false; }, 5000);
       }
 
-      // Reset flag after 8s if it was a temporary flag (not Finish or Red)
-      if (flag && flag !== 'Green' && flag !== 'Finish' && flag !== 'Red') {
+      // Reset flag after timeout (Finish persists, Red clears after 12s, others 8s)
+      if (flag && flag !== 'Green' && flag !== 'Finish') {
+        const delay = flag === 'Red' ? 12000 : 8000;
         setTimeout(() => {
           this.race.flag = 'Green';
           this.race.showFlagOverlay = false;
           this.race.flagMessage = '';
           this.race.flagType = '';
-        }, 8000);
+        }, delay);
       }
     },
 

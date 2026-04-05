@@ -8,7 +8,13 @@ Supports English, Russian, and Thai.
 
 ## Screenshots
 
-### Race Display
+### Time Attack Mode
+
+| Landscape | Portrait |
+|-----------|----------|
+| ![TA Landscape](screenshots/ta-landscape.png) | ![TA Portrait](screenshots/ta-portrait.png) |
+
+### Race Mode
 
 | Landscape | Portrait |
 |-----------|----------|

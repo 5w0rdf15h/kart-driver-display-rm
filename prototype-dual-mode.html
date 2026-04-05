@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0a0a0a">
+<title>Kart Display — Dual Mode Prototype</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Exo+2:wght@300;400;500;600;700&family=Oxanium:wght@400;600;700&display=swap');
+
+  :root {
+    --bg: #0a0a0a;
+    --bg-subtle: #111;
+    --text: #eee;
+    --text-dim: #666;
+    --text-label: #555;
+    --orange: #ff6600;
+    --green: #00cc44;
+    --red: #ee3333;
+    --gold: #ffd600;
+    --blue: #2196F3;
+    --purple: #9c27b0;
+    --font-num: 'Oxanium', monospace;
+    --font-ui: 'Exo 2', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-ui);
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  .mode-tabs { display: none; }
+
+  /* ═══ SHARED TOP BAR ═══ */
+  .top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 16px 4px;
+    min-height: 32px;
+  }
+  .flag-indicator { display: flex; gap: 6px; }
+  .flag-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: #1a1a1a;
+    transition: background 0.3s;
+  }
+  .flag-dot.dot-green { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .flag-dot.dot-dim { background: #222; }
+  .top-info {
+    display: flex; align-items: center; gap: 16px;
+    font-family: var(--font-num);
+    font-size: 18px;
+    margin-left: 24px;
+  }
+  .lap-counter { color: var(--text-dim); }
+  .lap-counter b { color: var(--text); font-weight: 600; }
+  .time-remain { color: var(--text); font-weight: 600; font-size: 20px; letter-spacing: 1px; }
+  .progress-track { height: 3px; background: #1a1a1a; width: 100%; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--orange) 0%, var(--gold) 100%); width: 65%; }
+
+  /* ═══ KART NUMBER BADGE ═══ */
+  .kart-badge {
+    position: absolute;
+    top: 6px;
+    left: 16px;
+    background: var(--green);
+    color: #000;
+    font-family: var(--font-num);
+    font-weight: 700;
+    font-size: 16px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+
+  /* ═══════════════════════════════════════════
+     TIME ATTACK MODE
+     ═══════════════════════════════════════════ */
+  .view-ta {
+    display: flex;
+    height: calc(100vh - 38px);
+    padding: 0 24px;
+  }
+
+  /* LEFT: lap time + delta */
+  .ta-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+  }
+  .ta-label {
+    font-size: 13px;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+  .ta-laptime {
+    font-family: var(--font-num);
+    font-size: clamp(72px, 18vw, 160px);
+    font-weight: 700;
+    letter-spacing: 2px;
+    line-height: 1;
+  }
+  .ta-delta {
+    font-family: var(--font-num);
+    font-size: clamp(28px, 6vw, 52px);
+    font-weight: 600;
+    font-style: italic;
+    letter-spacing: 1px;
+  }
+  .delta-green { color: var(--green); }
+  .delta-red { color: var(--red); }
+
+  /* RIGHT: stats panel */
+  .ta-stats {
+    width: 220px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 12px;
+    padding-left: 24px;
+    border-left: 1px solid #1a1a1a;
+  }
+  .ta-stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+  .ta-stat-label {
+    font-size: 12px;
+    letter-spacing: 1.5px;
+    color: var(--text-dim);
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+  .ta-stat-value {
+    font-family: var(--font-num);
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text);
+    text-align: right;
+  }
+  .ta-stat-value.best { color: var(--gold); }
+  .ta-stat-divider { height: 1px; background: #1a1a1a; }
+
+  /* Lap history mini-chart */
+  .ta-chart {
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 40px;
+    margin-top: 8px;
+  }
+  .ta-chart-bar {
+    flex: 1;
+    min-width: 6px;
+    border-radius: 2px 2px 0 0;
+    transition: height 0.3s;
+  }
+  .bar-best { background: var(--gold); }
+  .bar-good { background: var(--green); }
+  .bar-mid { background: var(--orange); }
+  .bar-slow { background: var(--red); opacity: 0.7; }
+
+  /* ═══════════════════════════════════════════
+     RACE MODE
+     ═══════════════════════════════════════════ */
+  .view-race {
+    display: flex;
+    height: calc(100vh - 38px);
+    padding: 0 16px;
+  }
+
+  /* LEFT: position + lap time */
+  .race-left {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .race-laptime {
+    font-family: var(--font-num);
+    font-size: clamp(60px, 14vw, 120px);
+    font-weight: 700;
+    letter-spacing: 2px;
+    line-height: 1;
+  }
+  .race-delta {
+    font-family: var(--font-num);
+    font-size: clamp(24px, 5vw, 40px);
+    font-weight: 600;
+    font-style: italic;
+  }
+
+  /* CENTER: leaderboard */
+  .race-board {
+    width: 340px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0;
+    padding: 0 20px;
+  }
+  .race-board-header {
+    display: grid;
+    grid-template-columns: 50px 1fr 90px 90px;
+    gap: 8px;
+    padding: 6px 12px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    border-bottom: 1px solid #222;
+  }
+  .race-board-row {
+    display: grid;
+    grid-template-columns: 50px 1fr 90px 90px;
+    gap: 8px;
+    padding: 10px 12px;
+    font-family: var(--font-num);
+    font-size: 18px;
+    font-weight: 600;
+    border-bottom: 1px solid #111;
+    transition: background 0.3s;
+  }
+  .race-board-row.me {
+    background: rgba(0, 204, 68, 0.12);
+    border-left: 3px solid var(--green);
+  }
+  .race-board-row .pos { color: var(--text); }
+  .race-board-row .name {
+    font-family: var(--font-ui);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-dim);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .race-board-row.me .name { color: var(--text); }
+  .race-board-row .gap { color: var(--text-dim); text-align: right; }
+  .race-board-row .best-col { text-align: right; }
+  .race-board-row.me .best-col { color: var(--gold); }
+
+  /* RIGHT: race stats */
+  .race-right {
+    width: 180px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 10px;
+    padding-left: 20px;
+    border-left: 1px solid #1a1a1a;
+  }
+  .race-stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+  .race-stat-label {
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    color: var(--text-dim);
+    font-weight: 600;
+  }
+  .race-stat-value {
+    font-family: var(--font-num);
+    font-size: 20px;
+    font-weight: 600;
+  }
+  .race-stat-value.best { color: var(--gold); }
+  .race-stat-divider { height: 1px; background: #1a1a1a; }
+
+  /* ═══ BOTTOM CONTROLS ═══ */
+  .bottom-controls {
+    position: absolute;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 8px;
+  }
+  .ctrl-btn {
+    width: 44px; height: 44px;
+    min-width: 44px;
+    background: var(--bg-subtle);
+    border: 1px solid #333;
+    border-radius: 8px;
+    color: var(--text-dim);
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+  .ctrl-btn:hover { border-color: #444; }
+  .ctrl-btn.ctrl-active { border-color: var(--green); background: #1a2e1a; }
+  .ctrl-btn svg { flex-shrink: 0; }
+
+  /* ═══ PORTRAIT RESPONSIVE ═══ */
+  @media (orientation: portrait) {
+    .bottom-controls { bottom: 12px; }
+    .view-ta {
+      flex-direction: column;
+      padding: 0 16px;
+      height: calc(100vh - 38px);
+      justify-content: space-between;
+    }
+    .ta-main { flex: 1; }
+    .ta-stats {
+      width: 100%;
+      flex-direction: row;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px 24px;
+      border-left: none;
+      padding-left: 0;
+      border-top: 1px solid #1a1a1a;
+      padding-top: 12px;
+      padding-bottom: 64px;
+    }
+    .ta-chart { display: none; }
+
+    .view-race {
+      flex-direction: column;
+      padding: 0 8px;
+    }
+    .race-left { order: 1; }
+    .race-board {
+      order: 3;
+      width: 100%;
+      padding: 0;
+    }
+    .race-board-row { font-size: 15px; }
+    .race-right {
+      order: 2;
+      width: 100%;
+      flex-direction: row;
+      flex-wrap: wrap;
+      gap: 8px 24px;
+      border-left: none;
+      padding-left: 0;
+      border-top: 1px solid #1a1a1a;
+      padding-top: 8px;
+    }
+  }
+
+  /* Hide non-active view */
+  .view-ta.hidden, .view-race.hidden { display: none; }
+</style>
+</head>
+<body>
+
+  <!-- KART BADGE -->
+  <div class="kart-badge">10</div>
+
+  <!-- TOP BAR -->
+  <div class="top-bar">
+    <div class="flag-indicator">
+      <span class="flag-dot dot-green"></span>
+      <span class="flag-dot dot-green"></span>
+      <span class="flag-dot dot-green"></span>
+      <span class="flag-dot dot-dim"></span>
+      <span class="flag-dot dot-dim"></span>
+      <span class="flag-dot dot-dim"></span>
+      <span class="flag-dot dot-dim"></span>
+      <span class="flag-dot dot-dim"></span>
+      <span class="flag-dot dot-dim"></span>
+    </div>
+    <div class="top-info">
+      <span class="lap-counter">LAP <b>8</b></span>
+      <span class="time-remain">3:42</span>
+    </div>
+  </div>
+  <div class="progress-track"><div class="progress-fill"></div></div>
+
+  <!-- mode tabs removed — using bottom icon toggle -->
+
+  <!-- ═══ TIME ATTACK VIEW ═══ -->
+  <div class="view-ta" id="view-ta">
+    <div class="ta-main">
+      <div class="ta-label">Last Lap</div>
+      <div class="ta-laptime">28.879</div>
+      <div class="ta-delta delta-green">-0.215</div>
+    </div>
+    <div class="ta-stats">
+      <div>
+        <div class="ta-stat-row">
+          <span class="ta-stat-label">BEST</span>
+          <span class="ta-stat-value best">28.664</span>
+        </div>
+        <div class="ta-stat-row" style="margin-top:4px;">
+          <span class="ta-stat-label" style="font-size:10px; color:#444;">LAP 5</span>
+          <span></span>
+        </div>
+      </div>
+      <div class="ta-stat-divider"></div>
+      <div class="ta-stat-row">
+        <span class="ta-stat-label">AVG</span>
+        <span class="ta-stat-value">30.840</span>
+      </div>
+      <div class="ta-stat-row">
+        <span class="ta-stat-label">L3</span>
+        <span class="ta-stat-value">29.112</span>
+      </div>
+      <div class="ta-stat-divider"></div>
+      <div class="ta-stat-row">
+        <span class="ta-stat-label">PACE</span>
+        <span class="ta-stat-value" style="color: var(--green);">↗ 1.7</span>
+      </div>
+      <div class="ta-stat-row">
+        <span class="ta-stat-label">σ</span>
+        <span class="ta-stat-value" style="color: var(--green);">0.34</span>
+      </div>
+      <div class="ta-stat-divider"></div>
+      <!-- Mini lap chart -->
+      <div class="ta-chart">
+        <div class="ta-chart-bar bar-slow" style="height: 15%;"></div>
+        <div class="ta-chart-bar bar-mid" style="height: 40%;"></div>
+        <div class="ta-chart-bar bar-mid" style="height: 55%;"></div>
+        <div class="ta-chart-bar bar-good" style="height: 70%;"></div>
+        <div class="ta-chart-bar bar-best" style="height: 100%;"></div>
+        <div class="ta-chart-bar bar-good" style="height: 85%;"></div>
+        <div class="ta-chart-bar bar-good" style="height: 78%;"></div>
+        <div class="ta-chart-bar bar-good" style="height: 82%;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ RACE VIEW ═══ -->
+  <div class="view-race hidden" id="view-race">
+    <div class="race-left">
+      <div class="ta-label">Last Lap</div>
+      <div class="race-laptime">28.879</div>
+      <div class="race-delta delta-green">-0.215</div>
+    </div>
+
+    <div class="race-board">
+      <div class="race-board-header">
+        <span>POS</span>
+        <span></span>
+        <span style="text-align:right;">GAP</span>
+        <span style="text-align:right;">BEST</span>
+      </div>
+      <div class="race-board-row">
+        <span class="pos">1</span>
+        <span class="name">Д. Ващенко</span>
+        <span class="gap">—</span>
+        <span class="best-col">28.249</span>
+      </div>
+      <div class="race-board-row">
+        <span class="pos">2</span>
+        <span class="name">Д. Савченко</span>
+        <span class="gap">+1.7s</span>
+        <span class="best-col">28.359</span>
+      </div>
+      <div class="race-board-row me">
+        <span class="pos">3</span>
+        <span class="name">Максим Малый</span>
+        <span class="gap">+3.2s</span>
+        <span class="best-col">28.664</span>
+      </div>
+      <div class="race-board-row">
+        <span class="pos">4</span>
+        <span class="name">А. Иванов</span>
+        <span class="gap">+8.1s</span>
+        <span class="best-col">29.878</span>
+      </div>
+      <div class="race-board-row">
+        <span class="pos">5</span>
+        <span class="name">Р. Мякишев</span>
+        <span class="gap">+12.4s</span>
+        <span class="best-col">32.211</span>
+      </div>
+    </div>
+
+    <div class="race-right">
+      <div class="race-stat-row">
+        <span class="race-stat-label">BEST</span>
+        <span class="race-stat-value best">28.664</span>
+      </div>
+      <div class="race-stat-divider"></div>
+      <div class="race-stat-row">
+        <span class="race-stat-label">AVG</span>
+        <span class="race-stat-value">30.840</span>
+      </div>
+      <div class="race-stat-row">
+        <span class="race-stat-label">L3</span>
+        <span class="race-stat-value">29.112</span>
+      </div>
+      <div class="race-stat-divider"></div>
+      <div class="race-stat-row">
+        <span class="race-stat-label">PACE</span>
+        <span class="race-stat-value" style="color: var(--green);">↗ 1.7</span>
+      </div>
+      <div class="race-stat-row">
+        <span class="race-stat-label">σ</span>
+        <span class="race-stat-value" style="color: var(--green);">0.34</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM CONTROLS -->
+  <div class="bottom-controls">
+    <button class="ctrl-btn" onclick="toggleMode()" id="mode-btn" title="Switch mode">
+      <svg id="mode-icon-race" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+      <svg id="mode-icon-ta" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    </button>
+    <button class="ctrl-btn ctrl-active">🔊</button>
+    <button class="ctrl-btn">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    </button>
+    <button class="ctrl-btn">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+    </button>
+  </div>
+
+  <script>
+    let currentMode = 'ta';
+    function toggleMode() {
+      currentMode = currentMode === 'ta' ? 'race' : 'ta';
+      document.getElementById('view-ta').classList.toggle('hidden', currentMode !== 'ta');
+      document.getElementById('view-race').classList.toggle('hidden', currentMode !== 'race');
+      // Swap icons: show flag when in TA (click to go to race), show clock when in race (click to go to TA)
+      document.getElementById('mode-icon-race').style.display = currentMode === 'ta' ? 'block' : 'none';
+      document.getElementById('mode-icon-ta').style.display = currentMode === 'race' ? 'block' : 'none';
+    }
+  </script>
+
+</body>
+</html>

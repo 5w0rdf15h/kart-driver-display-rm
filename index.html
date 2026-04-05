@@ -59,6 +59,12 @@
         <span x-text="settings.vibrate ? '📳 ON' : 'OFF'"></span>
       </button>
 
+      <label class="field-label" x-text="t('displayMode')"></label>
+      <div class="radio-row">
+        <label><input type="radio" x-model="displayMode" value="ta" @change="saveSettings()"> <span x-text="t('modeTA')"></span></label>
+        <label><input type="radio" x-model="displayMode" value="race" @change="saveSettings()"> <span x-text="t('modeRace')"></span></label>
+      </div>
+
       <div class="settings-actions">
         <button @click="saveAndStart()" class="btn-start" :disabled="!settings.name">
           <span x-text="settings.name ? t('start') : t('enterName')"></span>
@@ -114,38 +120,20 @@
       <div class="progress-fill" :style="`width: ${race.progress}%`"></div>
     </div>
 
-    <!-- Main 3-column layout -->
-    <div class="main-area">
+    <!-- Kart number badge -->
+    <div class="kart-badge" x-show="race.kartNumber" x-text="race.kartNumber"></div>
 
-      <!-- LEFT: Position & Gaps -->
-      <div class="col-left">
-        <div class="position-block">
-          <div class="pos-label" x-text="t('pos')"></div>
-          <div class="pos-number" x-show="race.position" x-text="race.position"></div>
-          <div class="pos-number pos-empty" x-show="!race.position">-</div>
-        </div>
-        <div class="gap-block" x-show="race.gapAhead !== null">
-          <span class="gap-arrow">▲</span>
-          <span class="gap-value" x-text="race.gapAhead !== null ? race.gapAhead.toFixed(1) + 's' : '—'"></span>
-        </div>
-        <div class="gap-block gap-behind" x-show="race.gapBehind !== null">
-          <span class="gap-arrow">▼</span>
-          <span class="gap-value" x-text="race.gapBehind !== null ? race.gapBehind.toFixed(1) + 's' : '—'"></span>
-        </div>
-        <div class="penalty-indicator" x-show="race.penaltyTime > 0">
-          <span class="penalty-badge" x-text="t('pen')"></span>
-          <span x-text="'+' + (race.penaltyTime/1000).toFixed(1) + 's'"></span>
-        </div>
-      </div>
+    <!-- TIME ATTACK mode -->
+    <div class="main-area main-ta" x-show="displayMode==='ta'">
 
-      <!-- CENTER: Lap Time & Delta -->
+      <!-- CENTER: Lap Time & Delta (full width, big) -->
       <div class="col-center">
         <div class="lap-time-container">
           <template x-if="race.lastLap > 0">
             <div>
               <div class="lap-time" x-text="(race.lastLap/1000).toFixed(3)" :class="{'is-best': race.isPersonalBest}"></div>
               <div class="lap-delta" x-show="race.delta !== null" :class="race.delta < 0 ? 'delta-green' : 'delta-red'" x-text="race.delta !== null ? (race.delta < 0 ? '' : '+') + (race.delta/1000).toFixed(3) : ''"></div>
-              <div class="best-flash" x-show="race.isPersonalBest" x-transition x-text="t('personalBest')"></div>
+              <div class="best-flash" :style="race.isPersonalBest ? '' : 'visibility:hidden'" x-text="t('personalBest')"></div>
             </div>
           </template>
           <template x-if="race.lastLap <= 0">
@@ -157,7 +145,86 @@
       </div>
 
       <!-- RIGHT: Stats -->
-      <div class="col-right">
+      <div class="col-right ta-stats-panel">
+        <div class="stat-row">
+          <span class="stat-label" x-text="t('best')"></span>
+          <span class="stat-value best-value" x-text="race.bestLap > 0 ? (race.bestLap/1000).toFixed(3) : '—'"></span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label" x-text="t('avg')"></span>
+          <span class="stat-value" x-text="race.avgLap > 0 ? (race.avgLap/1000).toFixed(3) : '—'"></span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label" x-text="t('l3')"></span>
+          <span class="stat-value" x-text="race.avgLast3 > 0 ? (race.avgLast3/1000).toFixed(3) : '—'"></span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-row">
+          <span class="stat-label" x-text="t('pace')"></span>
+          <span class="stat-value" :class="paceClass">
+            <span x-text="paceArrow"></span>
+            <span x-text="paceDelta"></span>
+          </span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">σ</span>
+          <span class="stat-value" :class="consistencyClass" x-text="race.consistency > 0 ? race.consistency.toFixed(2) : '—'"></span>
+        </div>
+        <!-- Mini lap chart -->
+        <div class="ta-lap-chart" x-show="race.lapHistory.length > 0">
+          <template x-for="(lap, i) in race.lapHistory.slice(-5)" :key="i">
+            <div class="ta-chart-bar-wrap">
+              <div class="ta-chart-bar" :style="`height: ${lapBarHeight(lap)}%`" :class="lapBarClass(lap)"></div>
+            </div>
+          </template>
+        </div>
+      </div>
+    </div>
+
+    <!-- RACE mode -->
+    <div class="main-area main-race" x-show="displayMode==='race'">
+
+      <!-- LEFT: Lap time & delta -->
+      <div class="col-race-left">
+        <div class="lap-time-container">
+          <template x-if="race.lastLap > 0">
+            <div>
+              <div class="lap-time race-lap-time" x-text="(race.lastLap/1000).toFixed(3)" :class="{'is-best': race.isPersonalBest}"></div>
+              <div class="lap-delta" x-show="race.delta !== null" :class="race.delta < 0 ? 'delta-green' : 'delta-red'" x-text="race.delta !== null ? (race.delta < 0 ? '' : '+') + (race.delta/1000).toFixed(3) : ''"></div>
+              <div class="best-flash" :style="race.isPersonalBest ? '' : 'visibility:hidden'" x-text="t('personalBest')"></div>
+            </div>
+          </template>
+          <template x-if="race.lastLap <= 0">
+            <div class="waiting-lap">
+              <div class="waiting-dots"><span>.</span><span>.</span><span>.</span></div>
+            </div>
+          </template>
+        </div>
+      </div>
+
+      <!-- CENTER: Leaderboard -->
+      <div class="race-board">
+        <div class="race-board-header">
+          <span>POS</span>
+          <span></span>
+          <span class="col-right-align">GAP</span>
+          <span class="col-right-align">BEST</span>
+        </div>
+        <template x-for="comp in visibleCompetitors" :key="comp.rn">
+          <div class="race-board-row" :class="{'me': comp.rn === race.kartNumber}">
+            <span class="pos" x-text="comp.pos"></span>
+            <span class="name" x-text="comp.fn || ('#' + comp.rn)"></span>
+            <span class="gap col-right-align" x-text="comp.gap !== null ? '+' + comp.gap.toFixed(1) + 's' : '—'"></span>
+            <span class="best-col col-right-align" x-text="comp.bestLap > 0 ? (comp.bestLap/1000).toFixed(3) : '—'"></span>
+          </div>
+        </template>
+        <div class="race-board-empty" x-show="visibleCompetitors.length === 0">
+          <span x-text="t('waitingData') || 'Waiting for data...'"></span>
+        </div>
+      </div>
+
+      <!-- RIGHT: Stats -->
+      <div class="col-right race-stats-panel">
         <div class="stat-row">
           <span class="stat-label" x-text="t('best')"></span>
           <span class="stat-value best-value" x-text="race.bestLap > 0 ? (race.bestLap/1000).toFixed(3) : '—'"></span>
@@ -195,6 +262,11 @@
         </template>
       </div>
       <div class="bottom-controls">
+        <!-- Mode toggle: flag icon = switch to Race, clock icon = switch to TA -->
+        <button @click="toggleDisplayMode()" class="ctrl-btn" :title="displayMode === 'ta' ? 'Switch to Race mode' : 'Switch to Time Attack mode'">
+          <svg x-show="displayMode==='ta'" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+          <svg x-show="displayMode==='race'" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </button>
         <button @click="toggleVoice()" class="ctrl-btn" :class="{'ctrl-active': settings.voice}">
           <span x-text="settings.voice ? '🔊' : '🔇'"></span>
         </button>

@@ -462,6 +462,7 @@ body.flash-gold { animation: flashGold 0.8s ease-out; }
   font-weight: 700;
   letter-spacing: 3px;
   color: var(--gold);
+  min-height: 22px;
   margin-top: 8px;
   animation: bestPulse 1.5s ease-in-out infinite;
 }
@@ -575,6 +576,135 @@ body.flash-gold { animation: flashGold 0.8s ease-out; }
 .ctrl-btn:hover { border-color: #444; }
 .ctrl-btn.ctrl-active { border-color: var(--green); background: #1a2e1a; }
 
+/* ─── Kart number badge ─── */
+.kart-badge {
+  position: absolute;
+  top: 6px;
+  left: 16px;
+  background: var(--green);
+  color: #000;
+  font-family: var(--font-num);
+  font-weight: 700;
+  font-size: 15px;
+  padding: 3px 9px;
+  border-radius: 4px;
+  z-index: 10;
+  pointer-events: none;
+}
+
+/* ─── Time Attack mode ─── */
+.main-ta {
+  /* No left column — center is wider */
+}
+.main-ta .col-center {
+  flex: 1;
+}
+.ta-stats-panel {
+  border-left: 1px solid #1a1a1a;
+  padding-left: 16px;
+}
+.ta-lap-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 40px;
+  margin-top: 8px;
+}
+.ta-chart-bar-wrap {
+  flex: 1;
+  min-width: 6px;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+}
+.ta-chart-bar {
+  width: 100%;
+  border-radius: 2px 2px 0 0;
+  transition: height 0.3s;
+}
+.ta-chart-bar.bar-best { background: var(--green); box-shadow: 0 0 8px rgba(0,204,68,0.5); }
+.ta-chart-bar.bar-good { background: var(--gold); }
+.ta-chart-bar.bar-mid { background: var(--orange); }
+.ta-chart-bar.bar-slow { background: var(--red); }
+
+/* ─── Race mode ─── */
+.main-race {
+  gap: 0;
+}
+.col-race-left {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+}
+.race-lap-time {
+  font-size: clamp(52px, 13vw, 120px) !important;
+}
+
+/* ─── Leaderboard ─── */
+.race-board {
+  width: 320px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 16px;
+}
+.race-board-header {
+  display: grid;
+  grid-template-columns: 44px 1fr 80px 80px;
+  gap: 6px;
+  padding: 5px 10px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  border-bottom: 1px solid #222;
+}
+.race-board-row {
+  display: grid;
+  grid-template-columns: 44px 1fr 80px 80px;
+  gap: 6px;
+  padding: 9px 10px;
+  font-family: var(--font-num);
+  font-size: 17px;
+  font-weight: 600;
+  border-bottom: 1px solid #111;
+  transition: background 0.3s;
+}
+.race-board-row.me {
+  background: rgba(0, 255, 136, 0.09);
+  border-left: 3px solid var(--green);
+  padding-left: 7px;
+}
+.race-board-row .pos { color: var(--text); }
+.race-board-row .name {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  align-self: center;
+}
+.race-board-row.me .name { color: var(--text); }
+.race-board-row .gap { color: var(--text-dim); }
+.race-board-row.me .best-col { color: var(--gold); }
+.col-right-align { text-align: right; }
+.race-board-empty {
+  padding: 16px 10px;
+  font-size: 13px;
+  color: var(--text-dim);
+  text-align: center;
+}
+.race-stats-panel {
+  border-left: 1px solid #1a1a1a;
+  padding-left: 16px;
+}
+
 /* ─── Responsive: portrait fallback ─── */
 @media (orientation: portrait) {
   .main-area { flex-direction: column; padding: 8px; }
@@ -584,6 +714,41 @@ body.flash-gold { animation: flashGold 0.8s ease-out; }
   .pos-number { font-size: 48px; }
   .lap-time { font-size: clamp(48px, 20vw, 100px); }
   .stat-divider { display: none; }
+
+  /* Time Attack portrait */
+  .main-ta { flex-direction: column; }
+  .ta-stats-panel {
+    flex-direction: row;
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px 20px;
+    border-left: none;
+    padding-left: 0;
+    border-top: 1px solid #1a1a1a;
+    padding-top: 10px;
+    padding-bottom: 56px;
+  }
+  .ta-stats-panel .stat-divider { display: none; }
+  .ta-lap-chart { display: none; }
+
+  /* Race portrait */
+  .main-race { flex-direction: column; }
+  .col-race-left { order: 1; }
+  .race-board { order: 3; width: 100%; padding: 0; }
+  .race-board-row { font-size: 14px; }
+  .race-stats-panel {
+    order: 2;
+    width: 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px 20px;
+    border-left: none;
+    padding-left: 0;
+    border-top: 1px solid #1a1a1a;
+    padding-top: 8px;
+  }
+  .race-stats-panel .stat-divider { display: none; }
 }
 
 /* ─── Language selector ─── */
