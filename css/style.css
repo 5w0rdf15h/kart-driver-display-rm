@@ -531,6 +531,7 @@ body.flash-gold { animation: flashGold 0.8s ease-out; }
   justify-content: center;
   transition: all 0.2s;
 }
+.ctrl-btn svg { flex-shrink: 0; }
 .ctrl-btn:hover { border-color: #444; }
 .ctrl-btn.ctrl-active { border-color: var(--green); background: #1a2e1a; }
 
