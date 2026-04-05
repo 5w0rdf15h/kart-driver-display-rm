@@ -45,6 +45,18 @@ const LANGS = {
     // Voice
     voiceBest: 'best lap',
     voicePos: 'position',
+    // Flags
+    flag_finish: 'HEAD TO PIT LANE',
+    flag_yellow: 'DANGER ON TRACK!',
+    flag_autoyellow: 'DANGER ON TRACK!',
+    flag_red: 'RACE STOPPED!',
+    flag_blue: 'YIELD!',
+    flag_commonblue: 'YIELD!',
+    flag_sc: 'SAFETY CAR — NO OVERTAKING',
+    flag_wet: 'SLIPPERY TRACK!',
+    flag_warning: 'WARNING',
+    flag_black: 'STOP BY MARSHAL',
+    flag_broken: 'BREAKDOWN — HEAD TO PIT',
   },
 
   ru: {
@@ -85,6 +97,17 @@ const LANGS = {
     back: '← Назад',
     voiceBest: 'лучший круг',
     voicePos: 'позиция',
+    flag_finish: 'СЛЕДУЙ НА ПИТ ЛЕЙН',
+    flag_yellow: 'ОПАСНОСТЬ НА ТРАССЕ!',
+    flag_autoyellow: 'ОПАСНОСТЬ НА ТРАССЕ!',
+    flag_red: 'ЗАЕЗД ОСТАНОВЛЕН!',
+    flag_blue: 'УСТУПИ ДОРОГУ!',
+    flag_commonblue: 'УСТУПИ ДОРОГУ!',
+    flag_sc: 'SC — ОБГОНЫ ЗАПРЕЩЕНЫ',
+    flag_wet: 'СКОЛЬЗКО НА ТРАССЕ!',
+    flag_warning: 'ПРЕДУПРЕЖДЕНИЕ',
+    flag_black: 'ОСТАНОВИСЬ ОКОЛО МАРШАЛА',
+    flag_broken: 'ПОЛОМКА — СЛЕДУЙ НА ПИТ ЛЕЙН',
   },
 
   th: {
@@ -125,6 +148,17 @@ const LANGS = {
     back: '← กลับ',
     voiceBest: 'รอบดีที่สุด',
     voicePos: 'ตำแหน่ง',
+    flag_finish: 'เข้าพิทเลน',
+    flag_yellow: 'อันตรายบนสนาม!',
+    flag_autoyellow: 'อันตรายบนสนาม!',
+    flag_red: 'การแข่งหยุด!',
+    flag_blue: 'หลีกทาง!',
+    flag_commonblue: 'หลีกทาง!',
+    flag_sc: 'SAFETY CAR — ห้ามแซง',
+    flag_wet: 'สนามลื่น!',
+    flag_warning: 'คำเตือน',
+    flag_black: 'หยุดที่มาร์แชล',
+    flag_broken: 'เสีย — เข้าพิทเลน',
   },
 };
 

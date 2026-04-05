@@ -90,6 +90,11 @@
   <!-- ═══ RACE DISPLAY ═══ -->
   <div x-show="view==='race'" class="view race-view" :class="'flag-' + race.flag.toLowerCase()" @click="handleDisplayTap($event)">
 
+    <!-- Flag overlay -->
+    <div class="flag-overlay" x-show="race.showFlagOverlay" x-transition :class="'flag-overlay-' + race.flagType">
+      <div class="flag-overlay-text" x-text="race.flagMessage"></div>
+    </div>
+
     <!-- Top bar -->
     <div class="top-bar">
       <div class="flag-indicator">
@@ -207,7 +212,7 @@
   <script src="vendor/bootstrap.bundle.min.js"></script>
   <script src="js/i18n.js"></script>
   <script src="js/signalr-lite.js"></script>
-  <script src="js/app.v4.js"></script>
+  <script src="js/app.v6.js"></script>
   <script src="vendor/alpine.min.js" defer></script>
 </body>
 </html>

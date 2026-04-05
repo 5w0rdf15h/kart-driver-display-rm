@@ -28,6 +28,9 @@ document.addEventListener('alpine:init', () => {
 
     race: {
       flag: 'Green',
+      flagMessage: '',
+      flagType: '',
+      showFlagOverlay: false,
       timeToGo: 0,
       scheduledTime: 0,
       progress: 0,
@@ -176,6 +179,11 @@ document.addEventListener('alpine:init', () => {
         this.hub.on('racehub', 'monitorSettings', () => {});
         this.hub.on('racehub', 'driversDataUpdated', () => {});
 
+        // Monitor messages — flag overlays (finish, yellow, blue, etc.)
+        this.hub.on('racehub', 'allMonitorMessages', (messages, compAlerts) => {
+          this._handleMonitorMessages(messages);
+        });
+
         this.hub.onDisconnected = () => {
           if (this.view === 'race' || this.view === 'connecting') {
             this.connectStatus = 'Disconnected. Reconnecting...';
@@ -242,6 +250,42 @@ document.addEventListener('alpine:init', () => {
         }
       } catch (e) {
         console.log('Could not fetch race metadata:', e.message);
+      }
+    },
+
+    _handleMonitorMessages(messages) {
+      if (!messages || !Array.isArray(messages)) return;
+      // Find the most relevant common flag from all monitor groups
+      let activeFlag = null;
+      for (const group of messages) {
+        if (!group) continue;
+        for (const key of Object.keys(group)) {
+          const msg = group[key];
+          if (msg && msg.IsCommonFlag && !msg.IsDriverMessage) {
+            activeFlag = msg;
+          }
+        }
+      }
+      if (activeFlag) {
+        const type = (activeFlag.MessageTypeStr || '').toLowerCase();
+        const flagMap = {
+          green: 'Green', start: 'Green', restart: 'Green',
+          yellow: 'Yellow', autoyellow: 'Yellow',
+          red: 'Red',
+          blue: 'Blue', commonblue: 'Blue',
+          finish: 'Finish',
+          sc: 'Yellow', wet: 'Yellow',
+          warning: 'Yellow', black: 'Red', broken: 'Red',
+        };
+        this.race.flag = flagMap[type] || 'Green';
+        this.race.flagType = type;
+        this.race.flagMessage = this.t('flag_' + type) || activeFlag.Text || '';
+        this.race.showFlagOverlay = type !== 'green' && type !== 'start' && type !== 'restart';
+      } else {
+        this.race.showFlagOverlay = false;
+        this.race.flagMessage = '';
+        this.race.flagType = '';
+        this.race.flag = 'Green';
       }
     },
 
@@ -434,7 +478,16 @@ document.addEventListener('alpine:init', () => {
       this.race.position = position;
       this.race.gapAhead = gapAhead;
       this.race.gapBehind = gapBehind;
-      this.race.flag = flag || 'Green';
+      if (flag) {
+        this.race.flag = flag;
+        const flagTypeMap = { Green: 'green', Yellow: 'yellow', Blue: 'blue', Red: 'red', Finish: 'finish' };
+        const type = flagTypeMap[flag] || 'green';
+        if (flag !== 'Green') {
+          this.race.flagType = type;
+          this.race.flagMessage = this.t('flag_' + type) || flag;
+          this.race.showFlagOverlay = true;
+        }
+      }
       if (penalty) this.race.penaltyTime += penalty;
 
       // Personal best check
@@ -493,9 +546,14 @@ document.addEventListener('alpine:init', () => {
         setTimeout(() => { this.race.isPersonalBest = false; }, 5000);
       }
 
-      // Reset flag after 3s if it was a temporary flag
-      if (flag && flag !== 'Green') {
-        setTimeout(() => { this.race.flag = 'Green'; }, 8000);
+      // Reset flag after 8s if it was a temporary flag (not Finish or Red)
+      if (flag && flag !== 'Green' && flag !== 'Finish' && flag !== 'Red') {
+        setTimeout(() => {
+          this.race.flag = 'Green';
+          this.race.showFlagOverlay = false;
+          this.race.flagMessage = '';
+          this.race.flagType = '';
+        }, 8000);
       }
     },
 
@@ -581,6 +639,7 @@ document.addEventListener('alpine:init', () => {
       this.race.scheduledTime = 0; this.race.timeToGo = 0; this.race.progress = 0;
       this.race.penaltyTime = 0; this.race.isPersonalBest = false;
       this.race.gapAhead = null; this.race.gapBehind = null;
+      this.race.showFlagOverlay = false; this.race.flagMessage = ''; this.race.flagType = '';
       this.currentRaceId = null; this._competitors = {};
       this.view = 'settings';
     },

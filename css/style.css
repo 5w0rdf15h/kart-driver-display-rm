@@ -303,6 +303,46 @@ body.flash-gold { animation: flashGold 0.8s ease-out; }
   letter-spacing: 1px;
 }
 
+/* ─── Flag overlay ─── */
+.flag-overlay {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  animation: flagFlash 1s ease-in-out infinite;
+}
+.flag-overlay-text {
+  font-family: var(--font-num);
+  font-size: clamp(28px, 6vw, 56px);
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-align: center;
+  padding: 24px 48px;
+  text-transform: uppercase;
+}
+.flag-overlay-finish { background: rgba(0, 0, 0, 0.85); }
+.flag-overlay-finish .flag-overlay-text { color: #fff; }
+.flag-overlay-yellow, .flag-overlay-autoyellow { background: rgba(255, 214, 0, 0.9); }
+.flag-overlay-yellow .flag-overlay-text, .flag-overlay-autoyellow .flag-overlay-text { color: #000; }
+.flag-overlay-red { background: rgba(220, 30, 30, 0.9); }
+.flag-overlay-red .flag-overlay-text { color: #fff; }
+.flag-overlay-blue, .flag-overlay-commonblue { background: rgba(30, 100, 220, 0.9); }
+.flag-overlay-blue .flag-overlay-text, .flag-overlay-commonblue .flag-overlay-text { color: #fff; }
+.flag-overlay-sc { background: rgba(255, 214, 0, 0.9); }
+.flag-overlay-sc .flag-overlay-text { color: #000; }
+.flag-overlay-wet { background: rgba(30, 100, 220, 0.85); }
+.flag-overlay-wet .flag-overlay-text { color: #fff; }
+.flag-overlay-warning { background: rgba(255, 165, 0, 0.9); }
+.flag-overlay-warning .flag-overlay-text { color: #000; }
+.flag-overlay-black, .flag-overlay-broken { background: rgba(0, 0, 0, 0.95); }
+.flag-overlay-black .flag-overlay-text, .flag-overlay-broken .flag-overlay-text { color: var(--red); }
+@keyframes flagFlash {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
 /* ─── Progress bar ─── */
 .progress-track {
   height: 3px;
