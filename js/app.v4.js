@@ -195,6 +195,8 @@ document.addEventListener('alpine:init', () => {
             this.connectStatus = this.t('searchingName') + ` (${name})`;
             await this.hub.invoke('racehub', 'SubscribeRace', data.id);
             await this.hub.invoke('racehub', 'SubscribeMonitor', 0);
+            // Fetch scheduled time from REST API
+            this._fetchRaceMetadata(baseUrl, data.id);
             // Switch to race view — data will populate as Comp messages arrive
             this.view = 'race';
             this.requestWakeLock();
@@ -227,6 +229,22 @@ document.addEventListener('alpine:init', () => {
       }, 5000);
     },
 
+    async _fetchRaceMetadata(baseUrl, raceId) {
+      try {
+        const resp = await fetch(`${baseUrl}/race/GetRaceStartData`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: `raceId=${raceId}`,
+        });
+        const data = await resp.json();
+        if (data?.raceData?.ScheduledTime) {
+          this.race.scheduledTime = data.raceData.ScheduledTime;
+        }
+      } catch (e) {
+        console.log('Could not fetch race metadata:', e.message);
+      }
+    },
+
     _handleRaceCommand(cmd, driverName) {
       if (!cmd) return;
       const method = cmd.Method || cmd.method;
@@ -236,12 +254,8 @@ document.addEventListener('alpine:init', () => {
       if (method === 'hb' && data) {
         this.race.timeToGo = data.tg || 0;
         this.race.flag = data.fl || 'Green';
-        // Track scheduled time from first hb (largest tg seen = total duration)
-        if (data.tg > this.race.scheduledTime) {
-          this.race.scheduledTime = data.tg;
-        }
-        if (data.tg !== undefined && this.race.scheduledTime > 0) {
-          this.race.progress = ((this.race.scheduledTime - data.tg) / this.race.scheduledTime) * 100;
+        if (this.race.scheduledTime > 0) {
+          this.race.progress = ((this.race.scheduledTime - this.race.timeToGo) / this.race.scheduledTime) * 100;
         }
         return;
       }
@@ -397,7 +411,7 @@ document.addEventListener('alpine:init', () => {
         if (i === 3) flag = 'Yellow';
         if (i === 5) flag = 'Blue';
         if (i === 7) flag = 'Red';
-        if (i === totalLaps - 1) flag = 'Finish';
+        if (i === count - 1) flag = 'Finish';
 
         laps.push({
           lapTime: Math.round(lapTime),

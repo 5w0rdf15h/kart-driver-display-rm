@@ -1,9 +1,9 @@
-const CACHE = 'kart-display-v4';
+const CACHE = 'kart-display-v5';
 const ASSETS = [
   '/',
   '/index.html',
   '/css/style.css',
-  '/js/app.v3.js',
+  '/js/app.v4.js',
   '/js/i18n.js',
   '/js/signalr-lite.js',
   '/vendor/alpine.min.js',
@@ -27,8 +27,15 @@ self.addEventListener('activate', e => {
   self.clients.claim();
 });
 
+// Network-first: always try fresh, fall back to cache (offline support)
 self.addEventListener('fetch', e => {
   e.respondWith(
-    caches.match(e.request).then(r => r || fetch(e.request))
+    fetch(e.request)
+      .then(resp => {
+        const clone = resp.clone();
+        caches.open(CACHE).then(c => c.put(e.request, clone));
+        return resp;
+      })
+      .catch(() => caches.match(e.request))
   );
 });
