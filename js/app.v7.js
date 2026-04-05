@@ -619,12 +619,15 @@ document.addEventListener('alpine:init', () => {
         setTimeout(() => { this.race.isPersonalBest = false; }, 5000);
       }
 
-      // Reset flag after timeout (Finish persists, Red clears after 12s, others 8s)
+      // Hide overlay after 5s, but keep flag status in dots + label
+      if (flag && flag !== 'Green') {
+        setTimeout(() => { this.race.showFlagOverlay = false; }, 5000);
+      }
+      // Reset flag entirely after longer delay (Finish persists)
       if (flag && flag !== 'Green' && flag !== 'Finish') {
-        const delay = flag === 'Red' ? 12000 : 8000;
+        const delay = flag === 'Red' ? 15000 : 10000;
         setTimeout(() => {
           this.race.flag = 'Green';
-          this.race.showFlagOverlay = false;
           this.race.flagMessage = '';
           this.race.flagType = '';
         }, delay);

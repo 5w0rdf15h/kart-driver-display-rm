@@ -110,7 +110,7 @@
       </div>
       <div class="top-info">
         <span class="lap-counter" x-show="race.myLaps > 0"><span x-text="t('lap')"></span> <b x-text="race.myLaps"></b></span>
-        <span class="flag-label" x-show="race.flag !== 'Green'" x-text="race.flag.toUpperCase()" :class="'flag-text-' + race.flag.toLowerCase()"></span>
+        <span class="flag-label" x-show="race.flagMessage" x-text="race.flagMessage" :class="'flag-text-' + race.flag.toLowerCase()"></span>
         <span class="time-remain" x-text="formatTime(race.timeToGo)"></span>
       </div>
     </div>
@@ -284,7 +284,7 @@
   <script src="vendor/bootstrap.bundle.min.js"></script>
   <script src="js/i18n.js"></script>
   <script src="js/signalr-lite.js"></script>
-  <script src="js/app.v6.js"></script>
+  <script src="js/app.v7.js"></script>
   <script src="vendor/alpine.min.js" defer></script>
 </body>
 </html>

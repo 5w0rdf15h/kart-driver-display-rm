@@ -6,15 +6,19 @@ Shows lap times, position, best lap, gap to leader, and other race data directly
 
 Supports English, Russian, and Thai.
 
-## Screenshots
+## Display Modes
 
-### Time Attack Mode
+### Time Attack
+
+Personal performance focus — large lap time with delta, stats panel (best, average, last 3, pace trend, consistency), and a mini lap chart showing the last 5 laps color-coded by quality.
 
 | Landscape | Portrait |
 |-----------|----------|
 | ![TA Landscape](screenshots/ta-landscape.png) | ![TA Portrait](screenshots/ta-portrait.png) |
 
-### Race Mode
+### Race
+
+Competitive mode — lap time with delta on the left, a live leaderboard in the center showing 5 drivers around your position, and stats on the right. Positions and gaps update in real time.
 
 | Landscape | Portrait |
 |-----------|----------|
@@ -25,6 +29,15 @@ Supports English, Russian, and Thai.
 | Landscape | Portrait |
 |-----------|----------|
 | ![Settings Landscape](screenshots/settings-landscape.png) | ![Settings Portrait](screenshots/settings-portrait.png) |
+
+## Features
+
+- Auto-detect kart by driver name (no manual kart selection)
+- Voice announcements (lap time, best lap, position)
+- Flag overlays from RaceMann race control (yellow, blue, red, finish)
+- Haptic feedback on personal best
+- Wake Lock (screen stays on)
+- Installable as PWA
 
 ## License
 

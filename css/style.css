@@ -291,10 +291,11 @@ body.flash-gold { animation: flashGold 0.8s ease-out; }
 .lap-counter { color: var(--text-dim); }
 .lap-counter b { color: var(--text); font-weight: 600; }
 
-.flag-label { font-weight: 700; letter-spacing: 2px; }
+.flag-label { font-weight: 700; letter-spacing: 1px; font-size: 13px; }
 .flag-text-yellow { color: var(--gold); }
 .flag-text-blue { color: var(--blue); }
 .flag-text-red { color: var(--red); }
+.flag-text-finish { color: #fff; }
 
 .time-remain {
   color: var(--text);
