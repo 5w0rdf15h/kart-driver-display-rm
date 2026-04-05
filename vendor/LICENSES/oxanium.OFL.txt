@@ -1,0 +1,4 @@
+Oxanium
+Copyright 2018 The Oxanium Project Authors
+Licensed under SIL Open Font License 1.1
+https://github.com/sevmeyer/oxanium/blob/master/OFL.txt

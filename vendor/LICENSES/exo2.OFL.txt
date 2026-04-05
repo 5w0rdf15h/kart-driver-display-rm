@@ -1,0 +1,4 @@
+Exo 2
+Copyright 2013 The Exo 2 Project Authors
+Licensed under SIL Open Font License 1.1
+https://github.com/NDISCOVER/Exo-2.0/blob/master/OFL.txt
