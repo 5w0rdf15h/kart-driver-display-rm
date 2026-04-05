@@ -10,6 +10,7 @@ document.addEventListener('alpine:init', () => {
     connectStatus: '',
     demoInterval: null,
     demoLapTimer: null,
+    isFullscreen: false,
 
     langs: LANGS,
 
@@ -96,6 +97,13 @@ document.addEventListener('alpine:init', () => {
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('sw.js').catch(() => {});
       }
+      // Track fullscreen state
+      document.addEventListener('fullscreenchange', () => {
+        this.isFullscreen = !!document.fullscreenElement;
+      });
+      document.addEventListener('webkitfullscreenchange', () => {
+        this.isFullscreen = !!document.webkitFullscreenElement;
+      });
       // Request wake lock
       this.requestWakeLock();
     },
@@ -112,6 +120,20 @@ document.addEventListener('alpine:init', () => {
       localStorage.setItem('kd_name', this.settings.name);
       localStorage.setItem('kd_track', this.settings.track);
       localStorage.setItem('kd_settings', JSON.stringify(this.settings));
+    },
+
+    requestFullscreen() {
+      const el = document.documentElement;
+      const rfs = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen;
+      if (rfs) rfs.call(el).catch(() => {});
+    },
+
+    toggleFullscreen() {
+      if (document.fullscreenElement || document.webkitFullscreenElement) {
+        (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+      } else {
+        this.requestFullscreen();
+      }
     },
 
     saveAndStart() {
