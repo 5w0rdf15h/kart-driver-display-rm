@@ -1,0 +1,24 @@
+/* Exo 2 - Light 300 */
+@font-face { font-family: 'Exo 2'; font-style: normal; font-weight: 300;
+  src: url(fonts/7cH1v4okm5zmbvwkAx_sfcEuiD8j4PKcPg.ttf) format('truetype'); }
+/* Exo 2 - Regular 400 */
+@font-face { font-family: 'Exo 2'; font-style: normal; font-weight: 400;
+  src: url(fonts/7cH1v4okm5zmbvwkAx_sfcEuiD8jvvKcPg.ttf) format('truetype'); }
+/* Exo 2 - Medium 500 */
+@font-face { font-family: 'Exo 2'; font-style: normal; font-weight: 500;
+  src: url(fonts/7cH1v4okm5zmbvwkAx_sfcEuiD8jjPKcPg.ttf) format('truetype'); }
+/* Exo 2 - SemiBold 600 */
+@font-face { font-family: 'Exo 2'; font-style: normal; font-weight: 600;
+  src: url(fonts/7cH1v4okm5zmbvwkAx_sfcEuiD8jYPWcPg.ttf) format('truetype'); }
+/* Exo 2 - Bold 700 */
+@font-face { font-family: 'Exo 2'; font-style: normal; font-weight: 700;
+  src: url(fonts/7cH1v4okm5zmbvwkAx_sfcEuiD8jWfWcPg.ttf) format('truetype'); }
+/* Oxanium - Regular 400 */
+@font-face { font-family: 'Oxanium'; font-style: normal; font-weight: 400;
+  src: url(fonts/RrQPboN_4yJ0JmiMUW7sIGjd1IA9G81JfniM.ttf) format('truetype'); }
+/* Oxanium - SemiBold 600 */
+@font-face { font-family: 'Oxanium'; font-style: normal; font-weight: 600;
+  src: url(fonts/RrQPboN_4yJ0JmiMUW7sIGjd1IA9G82XeXiM.ttf) format('truetype'); }
+/* Oxanium - Bold 700 */
+@font-face { font-family: 'Oxanium'; font-style: normal; font-weight: 700;
+  src: url(fonts/RrQPboN_4yJ0JmiMUW7sIGjd1IA9G82ueXiM.ttf) format('truetype'); }

@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="theme-color" content="#0a0a0a">
+  <title>Kart Display</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="vendor/fonts.css">
+  <link rel="stylesheet" href="vendor/bootstrap.min.css">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body x-data="kartDisplay" x-init="init()" :class="{'flash-green': flashType==='green', 'flash-red': flashType==='red', 'flash-gold': flashType==='gold'}">
+
+  <!-- ═══ SETTINGS VIEW ═══ -->
+  <div x-show="view==='settings'" x-transition class="view settings-view">
+    <div class="settings-card">
+      <div class="settings-logo">KART<span>DISPLAY</span></div>
+      <div class="settings-sub" x-text="t('subtitle')"></div>
+
+      <label class="field-label" x-text="t('language')"></label>
+      <div class="lang-row">
+        <template x-for="(lang, code) in langs" :key="code">
+          <button @click="setLang(code)" class="lang-btn" :class="{'active': settings.lang === code}" x-text="lang._name"></button>
+        </template>
+      </div>
+
+      <label class="field-label" x-text="t('driverName')"></label>
+      <input type="text" x-model="settings.name" :placeholder="t('namePlaceholder')" class="field-input" autocomplete="off">
+
+      <label class="field-label" x-text="t('track')"></label>
+      <div class="track-input-row">
+        <input type="text" x-model="settings.track" placeholder="race-on" class="field-input track-input" autocomplete="off">
+        <span class="track-suffix">.racemann.com</span>
+      </div>
+
+      <label class="field-label" x-text="t('voiceAnnouncements')"></label>
+      <div class="toggle-row">
+        <button @click="settings.voice = !settings.voice" :class="{'active': settings.voice}" class="toggle-btn">
+          <span x-text="settings.voice ? '🔊 ON' : '🔇 OFF'"></span>
+        </button>
+        <div class="toggle-options" x-show="settings.voice">
+          <label><input type="checkbox" x-model="settings.announceLap"> <span x-text="t('lapTime')"></span></label>
+          <label><input type="checkbox" x-model="settings.announceBest"> <span x-text="t('bestLap')"></span></label>
+          <label><input type="checkbox" x-model="settings.announcePos"> <span x-text="t('position')"></span></label>
+        </div>
+      </div>
+
+      <label class="field-label" x-text="t('deltaBase')"></label>
+      <div class="radio-row">
+        <label><input type="radio" x-model="settings.deltaBase" value="best"> <span x-text="t('vsBest')"></span></label>
+        <label><input type="radio" x-model="settings.deltaBase" value="prev"> <span x-text="t('vsPrev')"></span></label>
+      </div>
+
+      <label class="field-label" x-text="t('vibrateOnPB')"></label>
+      <button @click="settings.vibrate = !settings.vibrate" :class="{'active': settings.vibrate}" class="toggle-btn">
+        <span x-text="settings.vibrate ? '📳 ON' : 'OFF'"></span>
+      </button>
+
+      <div class="settings-actions">
+        <button @click="saveAndStart()" class="btn-start" :disabled="!settings.name">
+          <span x-text="settings.name ? t('start') : t('enterName')"></span>
+        </button>
+        <button @click="startDemo()" class="btn-demo" x-text="t('demo')"></button>
+      </div>
+
+      <div class="settings-credits">
+        <a href="https://racemann.com/" rel="nofollow" target="_blank" class="credit-link racemann-link">
+          <span class="credit-brand">RaceMann</span> &mdash; <span x-text="t('racemann_credit')"></span>
+        </a>
+        <a href="https://github.com/5w0rdf15h/" target="_blank" class="credit-link github-link">
+          <svg class="github-icon" viewBox="0 0 16 16" width="14" height="14" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          <span x-text="t('github_credit')"></span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ CONNECTING VIEW ═══ -->
+  <div x-show="view==='connecting'" x-transition class="view connecting-view">
+    <div class="connecting-content">
+      <div class="connecting-spinner"></div>
+      <div class="connecting-text" x-text="connectStatus"></div>
+      <button @click="view='settings'" class="btn-back" x-text="t('back')"></button>
+    </div>
+  </div>
+
+  <!-- ═══ RACE DISPLAY ═══ -->
+  <div x-show="view==='race'" class="view race-view" :class="'flag-' + race.flag.toLowerCase()" @click="handleDisplayTap($event)">
+
+    <!-- Top bar -->
+    <div class="top-bar">
+      <div class="flag-indicator">
+        <template x-for="i in 9">
+          <span class="flag-dot" :class="flagDotClass(i)"></span>
+        </template>
+      </div>
+      <div class="top-info">
+        <span class="lap-counter" x-show="race.myLaps > 0"><span x-text="t('lap')"></span> <b x-text="race.myLaps"></b></span>
+        <span class="flag-label" x-show="race.flag !== 'Green'" x-text="race.flag.toUpperCase()" :class="'flag-text-' + race.flag.toLowerCase()"></span>
+        <span class="time-remain" x-text="formatTime(race.timeToGo)"></span>
+      </div>
+    </div>
+
+    <!-- Progress bar -->
+    <div class="progress-track">
+      <div class="progress-fill" :style="`width: ${race.progress}%`"></div>
+    </div>
+
+    <!-- Main 3-column layout -->
+    <div class="main-area">
+
+      <!-- LEFT: Position & Gaps -->
+      <div class="col-left">
+        <div class="position-block">
+          <div class="pos-label" x-text="t('pos')"></div>
+          <div class="pos-number" x-show="race.position" x-text="race.position"></div>
+          <div class="pos-number pos-empty" x-show="!race.position">-</div>
+        </div>
+        <div class="gap-block" x-show="race.gapAhead !== null">
+          <span class="gap-arrow">▲</span>
+          <span class="gap-value" x-text="race.gapAhead !== null ? race.gapAhead.toFixed(1) + 's' : '—'"></span>
+        </div>
+        <div class="gap-block gap-behind" x-show="race.gapBehind !== null">
+          <span class="gap-arrow">▼</span>
+          <span class="gap-value" x-text="race.gapBehind !== null ? race.gapBehind.toFixed(1) + 's' : '—'"></span>
+        </div>
+        <div class="penalty-indicator" x-show="race.penaltyTime > 0">
+          <span class="penalty-badge" x-text="t('pen')"></span>
+          <span x-text="'+' + (race.penaltyTime/1000).toFixed(1) + 's'"></span>
+        </div>
+      </div>
+
+      <!-- CENTER: Lap Time & Delta -->
+      <div class="col-center">
+        <div class="lap-time-container">
+          <template x-if="race.lastLap > 0">
+            <div>
+              <div class="lap-time" x-text="(race.lastLap/1000).toFixed(3)" :class="{'is-best': race.isPersonalBest}"></div>
+              <div class="lap-delta" x-show="race.delta !== null" :class="race.delta < 0 ? 'delta-green' : 'delta-red'" x-text="race.delta !== null ? (race.delta < 0 ? '' : '+') + (race.delta/1000).toFixed(3) : ''"></div>
+              <div class="best-flash" x-show="race.isPersonalBest" x-transition x-text="t('personalBest')"></div>
+            </div>
+          </template>
+          <template x-if="race.lastLap <= 0">
+            <div class="waiting-lap">
+              <div class="waiting-dots"><span>.</span><span>.</span><span>.</span></div>
+            </div>
+          </template>
+        </div>
+      </div>
+
+      <!-- RIGHT: Stats -->
+      <div class="col-right">
+        <div class="stat-row">
+          <span class="stat-label" x-text="t('best')"></span>
+          <span class="stat-value best-value" x-text="race.bestLap > 0 ? (race.bestLap/1000).toFixed(3) : '—'"></span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label" x-text="t('avg')"></span>
+          <span class="stat-value" x-text="race.avgLap > 0 ? (race.avgLap/1000).toFixed(3) : '—'"></span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label" x-text="t('l3')"></span>
+          <span class="stat-value" x-text="race.avgLast3 > 0 ? (race.avgLast3/1000).toFixed(3) : '—'"></span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-row">
+          <span class="stat-label" x-text="t('pace')"></span>
+          <span class="stat-value" :class="paceClass">
+            <span x-text="paceArrow"></span>
+            <span x-text="paceDelta"></span>
+          </span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">σ</span>
+          <span class="stat-value" :class="consistencyClass" x-text="race.consistency > 0 ? race.consistency.toFixed(2) : '—'"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom bar: lap chart + controls -->
+    <div class="bottom-bar">
+      <div class="lap-chart">
+        <template x-for="(lap, i) in race.lapHistory" :key="i">
+          <div class="lap-bar-container">
+            <div class="lap-bar" :style="`height: ${lapBarHeight(lap)}%`" :class="lapBarClass(lap)"></div>
+          </div>
+        </template>
+      </div>
+      <div class="bottom-controls">
+        <button @click="toggleVoice()" class="ctrl-btn" :class="{'ctrl-active': settings.voice}">
+          <span x-text="settings.voice ? '🔊' : '🔇'"></span>
+        </button>
+        <button @click="goToSettings()" class="ctrl-btn">⚙</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="vendor/bootstrap.bundle.min.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/signalr-lite.js"></script>
+  <script src="js/app.js"></script>
+  <script src="vendor/alpine.min.js" defer></script>
+</body>
+</html>

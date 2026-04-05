@@ -1,0 +1,14 @@
+{
+  "name": "Kart Driver Display",
+  "short_name": "KartDisplay",
+  "description": "Racing driver display with RaceMann integration",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#0a0a0a",
+  "theme_color": "#0a0a0a",
+  "icons": [
+    { "src": "assets/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
