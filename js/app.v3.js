@@ -333,13 +333,15 @@ document.addEventListener('alpine:init', () => {
       this.race.isPersonalBest = false;
       this.race.penaltyTime = 0;
 
-      // Demo: lap every 3 seconds (accelerated), countdown every 100ms
+      // Demo: lap every 3 seconds (accelerated), countdown scaled to match
       let lapCount = 0;
       const demoLaps = this.generateDemoLaps(baseLap, 18);
+      const demoRealDuration = demoLaps.length * 3; // ~54 seconds real time
+      const countdownStep = Math.round(this.race.timeToGo / demoRealDuration); // ms per tick
 
-      // Countdown ticker
+      // Countdown ticker — 1 tick per second, scaled to fill the bar across the demo
       this.demoInterval = setInterval(() => {
-        this.race.timeToGo = Math.max(0, this.race.timeToGo - 1000);
+        this.race.timeToGo = Math.max(0, this.race.timeToGo - countdownStep);
         this.race.progress = ((this.race.scheduledTime - this.race.timeToGo) / this.race.scheduledTime) * 100;
       }, 1000);
 
@@ -390,10 +392,12 @@ document.addEventListener('alpine:init', () => {
         if (pos > 1) ahead = 0.5 + Math.random() * 3;
         if (pos < 5) behind = 0.3 + Math.random() * 2;
 
-        // Flag events
+        // Flag events — cycle through all RaceMann flag types
         let flag = 'Green';
-        if (i === 5) flag = 'Yellow'; // incident nearby
-        if (i === 10) flag = 'Blue'; // being lapped
+        if (i === 3) flag = 'Yellow';
+        if (i === 5) flag = 'Blue';
+        if (i === 7) flag = 'Red';
+        if (i === totalLaps - 1) flag = 'Finish';
 
         laps.push({
           lapTime: Math.round(lapTime),
@@ -494,7 +498,12 @@ document.addEventListener('alpine:init', () => {
 
     announceLapVoice(lapTime) {
       if (!this.settings.voice || !('speechSynthesis' in window)) return;
-      const sec = (lapTime / 1000).toFixed(1);
+      const totalSec = lapTime / 1000;
+      const whole = Math.floor(totalSec);
+      const frac = Math.round((totalSec - whole) * 1000).toString().padStart(3, '0');
+      // Use comma for Russian (decimal separator), dot for others
+      const sep = this.settings.lang === 'ru' ? ',' : '.';
+      const sec = whole + sep + frac;
       let text = '';
       if (this.settings.announceLap) text += sec;
       if (this.race.isPersonalBest && this.settings.announceBest) text += '. ' + this.t('voiceBest');
@@ -520,7 +529,7 @@ document.addEventListener('alpine:init', () => {
       if (flag === 'Green') return i <= 3 ? 'dot-green' : 'dot-dim';
       if (flag === 'Yellow') return 'dot-yellow';
       if (flag === 'Red') return 'dot-red';
-      if (flag === 'Blue') return i % 2 === 0 ? 'dot-blue' : 'dot-dim';
+      if (flag === 'Blue') return 'dot-blue';
       if (flag === 'Finish') return i % 2 === 0 ? 'dot-green' : 'dot-dim';
       return 'dot-dim';
     },

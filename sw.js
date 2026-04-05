@@ -1,9 +1,9 @@
-const CACHE = 'kart-display-v3';
+const CACHE = 'kart-display-v4';
 const ASSETS = [
   '/',
   '/index.html',
   '/css/style.css',
-  '/js/app.v2.js',
+  '/js/app.v3.js',
   '/js/i18n.js',
   '/js/signalr-lite.js',
   '/vendor/alpine.min.js',
