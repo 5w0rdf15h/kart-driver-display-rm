@@ -816,7 +816,7 @@ document.addEventListener('alpine:init', () => {
       }
 
       // Track record check
-      const recordMs = parseFloat(this.settings.trackRecord) * 1000;
+      const recordMs = parseFloat((this.settings.trackRecord || '').replace(',', '.')) * 1000;
       if (recordMs > 0 && lapTime > 0 && lapTime < recordMs && this.race.myLaps > 1) {
         this.settings.trackRecord = (lapTime / 1000).toFixed(3);
         this.saveSettings();
