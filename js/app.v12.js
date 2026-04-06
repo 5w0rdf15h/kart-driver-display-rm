@@ -148,6 +148,14 @@ document.addEventListener('alpine:init', () => {
       }
       // Sync lang to localStorage for t() function
       localStorage.setItem('kd_lang', this.settings.lang);
+      // Preload TTS voices (Chrome loads them asynchronously)
+      this._voices = [];
+      if ('speechSynthesis' in window) {
+        this._voices = speechSynthesis.getVoices();
+        speechSynthesis.onvoiceschanged = () => {
+          this._voices = speechSynthesis.getVoices();
+        };
+      }
       // Register service worker
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('sw.js').catch(() => {});
@@ -981,11 +989,19 @@ document.addEventListener('alpine:init', () => {
       let text = '';
       if (this.settings.announceLap) text += timeText;
       if (this.race.isPersonalBest && this.settings.announceBest) text += '. ' + this.t('voiceBest');
-      if (this.settings.announcePos && this.race.position) text += '. ' + this.t('voicePos') + ' ' + this.race.position;
+      if (this.settings.announcePos && this.race.position) text += ' ... ' + this.t('voicePos') + ', ' + this.race.position;
       if (text) {
         const u = new SpeechSynthesisUtterance(text);
         u.rate = 1.2;
-        u.lang = LANGS[this.settings.lang]?._voice || 'en-US';
+        const targetLang = LANGS[this.settings.lang]?._voice || 'en-US';
+        u.lang = targetLang;
+        // Explicitly set voice — Chrome ignores u.lang without this
+        const voices = this._voices.length ? this._voices : speechSynthesis.getVoices();
+        const langPrefix = targetLang.split('-')[0];
+        const match = voices.find(v => v.lang === targetLang)
+          || voices.find(v => v.lang.startsWith(langPrefix + '-'))
+          || voices.find(v => v.lang.startsWith(langPrefix));
+        if (match) u.voice = match;
         speechSynthesis.speak(u);
       }
     },

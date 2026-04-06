@@ -39,6 +39,24 @@ Competitive mode — lap time with delta on the left, a live leaderboard in the 
 - Wake Lock (screen stays on)
 - Installable as PWA
 
+## Development
+
+### Static File Versioning
+
+JS and CSS files use version suffixes for cache busting: `app.v11.js`, `style.v11.css`. The service worker (`sw.js`) caches these by exact filename.
+
+When making changes:
+
+1. Edit the current versioned files (e.g. `js/app.v11.js`, `css/style.v11.css`)
+2. Before committing, bump the version:
+   - Copy to new version: `cp js/app.v11.js js/app.v12.js`
+   - Delete old: `rm js/app.v11.js css/style.v11.css`
+   - Update `index.html` references to the new version
+   - Update `sw.js`: change `CACHE` name and `ASSETS` array to match new filenames
+3. Commit all changes together
+
+The service worker uses network-first strategy, so fresh deploys work immediately. The versioned filenames ensure browsers don't serve stale cached files.
+
 ## License
 
 MIT

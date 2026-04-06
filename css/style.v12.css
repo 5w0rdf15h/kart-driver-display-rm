@@ -272,7 +272,18 @@ body.flash-gold { animation: flashGold 0.8s ease-out; }
 .top-bar.top-bar-yellow { animation: topBarYellow 0.8s ease-in-out infinite; }
 .top-bar.top-bar-red { animation: topBarRed 0.8s ease-in-out infinite; }
 .top-bar.top-bar-blue { animation: topBarBlue 1s ease-in-out infinite; }
-.top-bar.top-bar-finish { animation: topBarFinish 0.6s step-end infinite; }
+.top-bar.top-bar-finish {
+  background: var(--bg);
+  border-top: 6px solid transparent;
+  border-bottom: 6px solid transparent;
+  border-image: repeating-conic-gradient(#fff 0% 25%, #222 0% 50%) 6;
+  border-image-slice: 6;
+  animation: topBarFinishBorder 0.5s step-end infinite;
+}
+@keyframes topBarFinishBorder {
+  0% { border-image-source: repeating-conic-gradient(#fff 0% 25%, #222 0% 50%); }
+  50% { border-image-source: repeating-conic-gradient(#222 0% 25%, #fff 0% 50%); }
+}
 
 @keyframes topBarYellow {
   0%, 100% { background: rgba(255, 214, 0, 0.35); }
@@ -285,10 +296,6 @@ body.flash-gold { animation: flashGold 0.8s ease-out; }
 @keyframes topBarBlue {
   0%, 100% { background: rgba(41, 121, 255, 0.35); }
   50% { background: rgba(41, 121, 255, 0.08); }
-}
-@keyframes topBarFinish {
-  0% { background: rgba(255, 255, 255, 0.25); }
-  50% { background: rgba(0, 0, 0, 0); }
 }
 
 .flag-indicator { display: flex; gap: 6px; }
@@ -673,8 +680,9 @@ body.flash-gold { animation: flashGold 0.8s ease-out; }
 
 /* ─── Leaderboard ─── */
 .race-board {
-  width: 320px;
-  flex-shrink: 0;
+  width: 380px;
+  flex-shrink: 1;
+  min-width: 240px;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -784,6 +792,36 @@ body.flash-gold { animation: flashGold 0.8s ease-out; }
     padding-top: 8px;
   }
   .race-stats-panel .stat-divider { display: none; }
+}
+
+/* ─── Short landscape (phone rotated, height ≤ 500px) ─── */
+@media (orientation: landscape) and (max-height: 500px) {
+  .top-bar { padding: 2px 12px 2px; min-height: 24px; }
+  .flag-dot { width: 7px; height: 7px; }
+  .top-info { font-size: 14px; gap: 10px; }
+  .time-remain { font-size: 16px; }
+  .kart-badge { font-size: 12px; padding: 2px 6px; }
+  .progress-track { height: 2px; }
+  .bottom-bar { padding: 2px 12px 4px; min-height: 36px; }
+  .ctrl-btn { width: 36px; height: 36px; min-width: 36px; }
+
+  .ta-stats-panel { gap: 2px; }
+  .ta-stats-panel .stat-value { font-size: 16px; }
+  .ta-stats-panel .stat-label { font-size: 10px; }
+  .ta-lap-chart { display: none; }
+
+  .race-stats-panel { display: none; }
+  .race-board-row { font-size: 14px; padding: 5px 10px; }
+}
+
+/* ─── Very narrow landscape (width < 500px, e.g. 364px tall phone) ─── */
+@media (orientation: landscape) and (max-width: 750px) {
+  .race-board { width: 240px; padding: 0 8px; }
+  .race-board-header { font-size: 8px; grid-template-columns: 32px 1fr 56px 64px; }
+  .race-board-row { font-size: 13px; padding: 5px 8px; grid-template-columns: 32px 1fr 56px 64px; }
+  .race-lap-time { font-size: clamp(40px, 12vw, 80px) !important; }
+  .lap-delta { font-size: clamp(18px, 4vw, 32px); }
+  .ta-stats-panel { width: 120px; }
 }
 
 /* ─── Language selector ─── */
