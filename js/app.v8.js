@@ -231,7 +231,14 @@ document.addEventListener('alpine:init', () => {
 
         // Monitor messages — flag overlays (finish, yellow, blue, etc.)
         this.hub.on('racehub', 'allMonitorMessages', (messages, compAlerts) => {
+          console.log('allMonitorMessages:', JSON.stringify(messages).slice(0, 500));
           this._handleMonitorMessages(messages);
+        });
+
+        // Broadcast flag changes (finish, yellow, blue, etc.) — real-time updates
+        this.hub.on('racehub', 'newWideSpreadCommand', (...args) => {
+          console.log('newWideSpreadCommand:', JSON.stringify(args).slice(0, 500));
+          this._handleWideSpreadCommand(args);
         });
 
         this.hub.onDisconnected = () => {
@@ -304,8 +311,16 @@ document.addEventListener('alpine:init', () => {
         if (data.raceData?.TimeToGo != null) {
           this.race.timeToGo = data.raceData.TimeToGo;
         }
-        if (data.raceData?.FlagStatus) {
-          this.race.flag = data.raceData.FlagStatus;
+        // Detect race end from REST data: TimeToGo=0 means race is over
+        // Note: FlagStatus stays "Green" and IsComplete stays false even after
+        // race ends — these fields are unreliable for finish detection
+        if (data.raceData?.TimeToGo === 0 && data.raceData?.RaceTime > 0) {
+          this.race.flag = 'Finish';
+          this.race.flagMessage = this.t('flag_finish') || 'FINISH';
+        } else if (data.raceData?.FlagStatus && data.raceData.FlagStatus !== 'Green') {
+          const flag = data.raceData.FlagStatus;
+          this.race.flag = flag;
+          this.race.flagMessage = this.t('flag_' + flag.toLowerCase()) || flag;
         }
         if (this.race.scheduledTime > 0 && this.race.timeToGo != null) {
           this.race.progress = ((this.race.scheduledTime - this.race.timeToGo) / this.race.scheduledTime) * 100;
@@ -313,6 +328,8 @@ document.addEventListener('alpine:init', () => {
 
         // Pre-populate all competitors
         if (data.comps && Array.isArray(data.comps)) {
+          const nameMatches = []; // Collect all name matches (kart swaps create duplicates)
+
           for (const comp of data.comps) {
             const rn = comp.cs?.rn || comp.rn || comp.nn;
             if (!rn) continue;
@@ -326,14 +343,25 @@ document.addEventListener('alpine:init', () => {
               gap: comp.pld ? (comp.pld / 1000) : null,
             };
 
-            // Find our driver by name
-            if (driverName && !this.race.kartNumber) {
+            // Collect name matches (may be multiple due to kart swaps)
+            if (driverName) {
               const nameNorm = driverName.toLowerCase().trim();
               const fnNorm = (comp.fn || '').toLowerCase().trim();
               if (fnNorm === nameNorm || fnNorm.includes(nameNorm) || nameNorm.includes(fnNorm)) {
-                this.race.kartNumber = rn;
-                console.log(`Found driver "${comp.fn}" on kart #${rn} (from REST)`);
+                nameMatches.push({ rn, comp, lastLap: comp.cs?.sll || 0, endTime: comp.cs?.se || 0 });
               }
+            }
+          }
+
+          // Pick the most recently active entry (highest session last lap)
+          if (nameMatches.length > 0 && !this.race.kartNumber) {
+            nameMatches.sort((a, b) => b.lastLap - a.lastLap || b.endTime - a.endTime);
+            const best = nameMatches[0];
+            this.race.kartNumber = best.rn;
+            if (nameMatches.length > 1) {
+              console.log(`Driver "${driverName}" found on ${nameMatches.length} karts (swap detected): ${nameMatches.map(m => '#' + m.rn).join(', ')}. Using #${best.rn} (most recent)`);
+            } else {
+              console.log(`Found driver "${best.comp.fn}" on kart #${best.rn} (from REST)`);
             }
           }
 
@@ -413,26 +441,62 @@ document.addEventListener('alpine:init', () => {
         }
       }
       if (activeFlag) {
-        const type = (activeFlag.MessageTypeStr || '').toLowerCase();
-        const flagMap = {
-          green: 'Green', start: 'Green', restart: 'Green',
-          yellow: 'Yellow', autoyellow: 'Yellow',
-          red: 'Red',
-          blue: 'Blue', commonblue: 'Blue',
-          finish: 'Finish',
-          sc: 'Yellow', wet: 'Yellow',
-          warning: 'Yellow', black: 'Red', broken: 'Red',
-        };
-        this.race.flag = flagMap[type] || 'Green';
-        this.race.flagType = type;
-        this.race.flagMessage = this.t('flag_' + type) || activeFlag.Text || '';
-        this.race.showFlagOverlay = type !== 'green' && type !== 'start' && type !== 'restart';
-      } else {
-        this.race.showFlagOverlay = false;
-        this.race.flagMessage = '';
-        this.race.flagType = '';
-        this.race.flag = 'Green';
+        this._applyFlag(activeFlag.MessageTypeStr, activeFlag.Text);
       }
+      // Don't reset flag when no activeFlag — let heartbeat/REST/wideSpread flags stand
+    },
+
+    _handleWideSpreadCommand(args) {
+      // newWideSpreadCommand may send flag data in various formats
+      // Try to extract flag info from the arguments
+      for (const arg of args) {
+        if (!arg) continue;
+        // Could be a single message object or an array
+        const items = Array.isArray(arg) ? arg : [arg];
+        for (const item of items) {
+          if (item && item.MessageTypeStr) {
+            console.log('WideSpread flag:', item.MessageTypeStr, item.Text);
+            this._applyFlag(item.MessageTypeStr, item.Text);
+            return;
+          }
+          if (item && item.IsCommonFlag) {
+            console.log('WideSpread common flag:', item.MessageTypeStr, item.Text);
+            this._applyFlag(item.MessageTypeStr, item.Text);
+            return;
+          }
+          // Some messages come as {Method, Command} like race commands
+          if (item && (item.Method || item.method)) {
+            const method = item.Method || item.method;
+            const data = item.Command || item.command || item;
+            if (method === 'flag' || method === 'Flag') {
+              console.log('WideSpread flag command:', data);
+              const flagStr = data.fl || data.Flag || data.flag;
+              if (flagStr) {
+                this.race.flag = flagStr;
+                this.race.flagMessage = this.t('flag_' + flagStr.toLowerCase()) || flagStr;
+              }
+              return;
+            }
+          }
+        }
+      }
+    },
+
+    _applyFlag(messageTypeStr, text) {
+      const type = (messageTypeStr || '').toLowerCase();
+      const flagMap = {
+        green: 'Green', start: 'Green', restart: 'Green',
+        yellow: 'Yellow', autoyellow: 'Yellow',
+        red: 'Red',
+        blue: 'Blue', commonblue: 'Blue',
+        finish: 'Finish',
+        sc: 'Yellow', wet: 'Yellow',
+        warning: 'Yellow', black: 'Red', broken: 'Red',
+      };
+      this.race.flag = flagMap[type] || 'Green';
+      this.race.flagType = type;
+      this.race.flagMessage = this.t('flag_' + type) || text || '';
+      this.race.showFlagOverlay = type !== 'green' && type !== 'start' && type !== 'restart';
     },
 
     _handleRaceCommand(cmd, driverName) {
@@ -442,20 +506,33 @@ document.addEventListener('alpine:init', () => {
 
       // Heartbeat — update timer
       if (method === 'hb' && data) {
+        const prevTg = this.race.timeToGo;
         this.race.timeToGo = data.tg || 0;
-        const newFlag = data.fl || 'Green';
-        if (newFlag !== this.race.flag) {
-          this.race.flag = newFlag;
-          // Set flag message from heartbeat flag changes
-          if (newFlag !== 'Green') {
-            const flagKey = 'flag_' + newFlag.toLowerCase();
-            this.race.flagMessage = this.t(flagKey) || newFlag;
-          } else {
-            this.race.flagMessage = '';
-          }
+
+        // Detect ScheduledTime extension: tg jumped up (race director added time)
+        if (this.race.timeToGo > prevTg + 5000 && prevTg > 0) {
+          const added = this.race.timeToGo - prevTg;
+          this.race.scheduledTime += added;
+          console.log(`ScheduledTime extended by +${added}ms → ${this.race.scheduledTime}ms`);
         }
+
+        // Detect race end: tg reached 0 (FlagStatus/IsComplete are unreliable)
+        if (this.race.timeToGo === 0 && prevTg > 0 && this.race.flag !== 'Finish') {
+          this.race.flag = 'Finish';
+          this.race.flagMessage = this.t('flag_finish') || 'FINISH';
+          console.log('Race finished (tg reached 0)');
+        }
+
+        // Handle flag changes from heartbeat (yellow, blue, etc.)
+        const newFlag = data.fl || 'Green';
+        // Don't let hb.fl downgrade Finish (hb.fl stays "Green" even after race ends)
+        if (newFlag !== 'Green' && newFlag !== this.race.flag && this.race.flag !== 'Finish') {
+          this.race.flag = newFlag;
+          this.race.flagMessage = this.t('flag_' + newFlag.toLowerCase()) || newFlag;
+        }
+
         if (this.race.scheduledTime > 0) {
-          this.race.progress = ((this.race.scheduledTime - this.race.timeToGo) / this.race.scheduledTime) * 100;
+          this.race.progress = Math.min(100, ((this.race.scheduledTime - this.race.timeToGo) / this.race.scheduledTime) * 100);
         }
         return;
       }
@@ -466,12 +543,18 @@ document.addEventListener('alpine:init', () => {
         const fn = data.fn || '';
 
         // Auto-detect kart by driver name (fuzzy match)
-        if (!this.race.kartNumber && driverName) {
+        if (driverName) {
           const nameNorm = driverName.toLowerCase().trim();
           const fnNorm = fn.toLowerCase().trim();
           if (fnNorm === nameNorm || fnNorm.includes(nameNorm) || nameNorm.includes(fnNorm)) {
-            this.race.kartNumber = rn;
-            console.log(`Found driver "${fn}" on kart #${rn}`);
+            if (!this.race.kartNumber) {
+              this.race.kartNumber = rn;
+              console.log(`Found driver "${fn}" on kart #${rn}`);
+            } else if (rn !== this.race.kartNumber) {
+              // Kart swap detected: same driver name, new kart number via live Comp
+              console.log(`Kart swap detected: "${fn}" moved from #${this.race.kartNumber} to #${rn}`);
+              this.race.kartNumber = rn;
+            }
           }
         }
 
@@ -785,13 +868,23 @@ document.addEventListener('alpine:init', () => {
     announceLapVoice(lapTime) {
       if (!this.settings.voice || !('speechSynthesis' in window)) return;
       const totalSec = lapTime / 1000;
-      const whole = Math.floor(totalSec);
-      const frac = Math.round((totalSec - whole) * 1000).toString().padStart(3, '0');
-      // Use comma for Russian (decimal separator), dot for others
+      const min = Math.floor(totalSec / 60);
+      const sec = totalSec - min * 60;
       const sep = this.settings.lang === 'ru' ? ',' : '.';
-      const sec = whole + sep + frac;
+
+      let timeText = '';
+      if (min > 0) {
+        const secWhole = Math.floor(sec);
+        const secFrac = Math.round((sec - secWhole) * 1000).toString().padStart(3, '0');
+        timeText = min + ' ' + this.t('voiceMinute') + ' ' + secWhole + ' ' + this.t('voicePoint') + ' ' + secFrac;
+      } else {
+        const whole = Math.floor(sec);
+        const frac = Math.round((sec - whole) * 1000).toString().padStart(3, '0');
+        timeText = whole + ' ' + this.t('voicePoint') + ' ' + frac;
+      }
+
       let text = '';
-      if (this.settings.announceLap) text += sec;
+      if (this.settings.announceLap) text += timeText;
       if (this.race.isPersonalBest && this.settings.announceBest) text += '. ' + this.t('voiceBest');
       if (this.settings.announcePos && this.race.position) text += '. ' + this.t('voicePos') + ' ' + this.race.position;
       if (text) {
@@ -803,6 +896,30 @@ document.addEventListener('alpine:init', () => {
     },
 
     // ═══ UI HELPERS ═══
+    formatLap(ms) {
+      if (!ms || ms <= 0) return '—';
+      const totalSec = ms / 1000;
+      const min = Math.floor(totalSec / 60);
+      const sec = totalSec - min * 60;
+      if (min > 0) {
+        return `${min}:${sec.toFixed(3).padStart(6, '0')}`;
+      }
+      return sec.toFixed(3);
+    },
+
+    formatDelta(ms) {
+      if (ms == null) return '';
+      const sign = ms < 0 ? '' : '+';
+      const abs = Math.abs(ms);
+      const totalSec = abs / 1000;
+      const min = Math.floor(totalSec / 60);
+      const sec = totalSec - min * 60;
+      if (min > 0) {
+        return `${sign}${min}:${sec.toFixed(3).padStart(6, '0')}`;
+      }
+      return `${sign}${sec.toFixed(3)}`;
+    },
+
     formatTime(ms) {
       if (ms <= 0) return '0:00';
       const min = Math.floor(ms / 60000);

@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="vendor/fonts.css">
   <link rel="stylesheet" href="vendor/bootstrap.min.css">
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/style.v8.css">
 </head>
 <body x-data="kartDisplay" x-init="init()" :class="{'flash-green': flashType==='green', 'flash-red': flashType==='red', 'flash-gold': flashType==='gold'}">
 
@@ -102,7 +102,7 @@
     </div>
 
     <!-- Top bar -->
-    <div class="top-bar">
+    <div class="top-bar" :class="topBarFlagClass">
       <div class="flag-indicator">
         <template x-for="i in 9">
           <span class="flag-dot" :class="flagDotClass(i)"></span>
@@ -110,7 +110,7 @@
       </div>
       <div class="top-info">
         <span class="lap-counter" x-show="race.myLaps > 0"><span x-text="t('lap')"></span> <b x-text="race.myLaps"></b></span>
-        <span class="flag-label" x-show="race.flagMessage" x-text="race.flagMessage" :class="'flag-text-' + race.flag.toLowerCase()"></span>
+        <span class="flag-label" x-show="race.flag !== 'Green'" x-text="flagDisplayText" :class="'flag-text-' + race.flag.toLowerCase()"></span>
         <span class="time-remain" x-text="formatTime(race.timeToGo)"></span>
       </div>
     </div>
@@ -131,8 +131,8 @@
         <div class="lap-time-container">
           <template x-if="race.lastLap > 0">
             <div>
-              <div class="lap-time" x-text="(race.lastLap/1000).toFixed(3)" :class="{'is-best': race.isPersonalBest}"></div>
-              <div class="lap-delta" x-show="race.delta !== null" :class="race.delta < 0 ? 'delta-green' : 'delta-red'" x-text="race.delta !== null ? (race.delta < 0 ? '' : '+') + (race.delta/1000).toFixed(3) : ''"></div>
+              <div class="lap-time" x-text="formatLap(race.lastLap)" :class="{'is-best': race.isPersonalBest}"></div>
+              <div class="lap-delta" x-show="race.delta !== null" :class="race.delta < 0 ? 'delta-green' : 'delta-red'" x-text="race.delta !== null ? formatDelta(race.delta) : ''"></div>
               <div class="best-flash" :style="race.isPersonalBest ? '' : 'visibility:hidden'" x-text="t('personalBest')"></div>
             </div>
           </template>
@@ -148,15 +148,15 @@
       <div class="col-right ta-stats-panel">
         <div class="stat-row">
           <span class="stat-label" x-text="t('best')"></span>
-          <span class="stat-value best-value" x-text="race.bestLap > 0 ? (race.bestLap/1000).toFixed(3) : '—'"></span>
+          <span class="stat-value best-value" x-text="race.bestLap > 0 ? formatLap(race.bestLap) : '—'"></span>
         </div>
         <div class="stat-row">
           <span class="stat-label" x-text="t('avg')"></span>
-          <span class="stat-value" x-text="race.avgLap > 0 ? (race.avgLap/1000).toFixed(3) : '—'"></span>
+          <span class="stat-value" x-text="race.avgLap > 0 ? formatLap(race.avgLap) : '—'"></span>
         </div>
         <div class="stat-row">
           <span class="stat-label" x-text="t('l3')"></span>
-          <span class="stat-value" x-text="race.avgLast3 > 0 ? (race.avgLast3/1000).toFixed(3) : '—'"></span>
+          <span class="stat-value" x-text="race.avgLast3 > 0 ? formatLap(race.avgLast3) : '—'"></span>
         </div>
         <div class="stat-divider"></div>
         <div class="stat-row">
@@ -189,8 +189,8 @@
         <div class="lap-time-container">
           <template x-if="race.lastLap > 0">
             <div>
-              <div class="lap-time race-lap-time" x-text="(race.lastLap/1000).toFixed(3)" :class="{'is-best': race.isPersonalBest}"></div>
-              <div class="lap-delta" x-show="race.delta !== null" :class="race.delta < 0 ? 'delta-green' : 'delta-red'" x-text="race.delta !== null ? (race.delta < 0 ? '' : '+') + (race.delta/1000).toFixed(3) : ''"></div>
+              <div class="lap-time race-lap-time" x-text="formatLap(race.lastLap)" :class="{'is-best': race.isPersonalBest}"></div>
+              <div class="lap-delta" x-show="race.delta !== null" :class="race.delta < 0 ? 'delta-green' : 'delta-red'" x-text="race.delta !== null ? formatDelta(race.delta) : ''"></div>
               <div class="best-flash" :style="race.isPersonalBest ? '' : 'visibility:hidden'" x-text="t('personalBest')"></div>
             </div>
           </template>
@@ -215,7 +215,7 @@
             <span class="pos" x-text="comp.pos"></span>
             <span class="name" x-text="comp.fn || ('#' + comp.rn)"></span>
             <span class="gap col-right-align" x-text="comp.gap !== null ? '+' + comp.gap.toFixed(1) + 's' : '—'"></span>
-            <span class="best-col col-right-align" x-text="comp.bestLap > 0 ? (comp.bestLap/1000).toFixed(3) : '—'"></span>
+            <span class="best-col col-right-align" x-text="comp.bestLap > 0 ? formatLap(comp.bestLap) : '—'"></span>
           </div>
         </template>
         <div class="race-board-empty" x-show="visibleCompetitors.length === 0">
@@ -227,15 +227,15 @@
       <div class="col-right race-stats-panel">
         <div class="stat-row">
           <span class="stat-label" x-text="t('best')"></span>
-          <span class="stat-value best-value" x-text="race.bestLap > 0 ? (race.bestLap/1000).toFixed(3) : '—'"></span>
+          <span class="stat-value best-value" x-text="race.bestLap > 0 ? formatLap(race.bestLap) : '—'"></span>
         </div>
         <div class="stat-row">
           <span class="stat-label" x-text="t('avg')"></span>
-          <span class="stat-value" x-text="race.avgLap > 0 ? (race.avgLap/1000).toFixed(3) : '—'"></span>
+          <span class="stat-value" x-text="race.avgLap > 0 ? formatLap(race.avgLap) : '—'"></span>
         </div>
         <div class="stat-row">
           <span class="stat-label" x-text="t('l3')"></span>
-          <span class="stat-value" x-text="race.avgLast3 > 0 ? (race.avgLast3/1000).toFixed(3) : '—'"></span>
+          <span class="stat-value" x-text="race.avgLast3 > 0 ? formatLap(race.avgLast3) : '—'"></span>
         </div>
         <div class="stat-divider"></div>
         <div class="stat-row">
@@ -284,7 +284,7 @@
   <script src="vendor/bootstrap.bundle.min.js"></script>
   <script src="js/i18n.js"></script>
   <script src="js/signalr-lite.js"></script>
-  <script src="js/app.v7.js"></script>
+  <script src="js/app.v8.js"></script>
   <script src="vendor/alpine.min.js" defer></script>
 </body>
 </html>
