@@ -25,11 +25,13 @@ document.addEventListener('alpine:init', () => {
       announcePos: false,
       deltaBase: 'best',
       vibrate: true,
+      trackRecord: localStorage.getItem('kd_trackRecord') || '',
     },
 
     race: {
       flag: 'Green',
       flagMessage: '',
+      showRecordCelebration: false,
       flagType: '',
       showFlagOverlay: false,
       timeToGo: 0,
@@ -172,6 +174,7 @@ document.addEventListener('alpine:init', () => {
     saveSettings() {
       localStorage.setItem('kd_name', this.settings.name);
       localStorage.setItem('kd_track', this.settings.track);
+      localStorage.setItem('kd_trackRecord', this.settings.trackRecord || '');
       localStorage.setItem('kd_settings', JSON.stringify(this.settings));
     },
 
@@ -255,6 +258,12 @@ document.addEventListener('alpine:init', () => {
         // lastRaceId arrives via handler, not invoke return
         this.hub.on('racehub', 'lastRaceId', async (data) => {
           if (data && data.id && data.id !== this.currentRaceId) {
+            const isNewRace = this.currentRaceId !== null;
+            if (isNewRace) {
+              // New race detected — reset display state
+              console.log(`New race detected: ${data.id} (previous: ${this.currentRaceId})`);
+              this._resetRaceState();
+            }
             this.currentRaceId = data.id;
             console.log(`Race found: ${data.id} (time: ${data.raceTime}s)`);
             this.connectStatus = this.t('searchingName') + ` (${name})`;
@@ -273,6 +282,13 @@ document.addEventListener('alpine:init', () => {
 
         // Step 2: Request current race (response comes via lastRaceId handler)
         await this.hub.invoke('racehub', 'GetLastRaceId');
+
+        // Step 3: Poll for new races every 10s (handles race transitions)
+        this.racePoller = setInterval(async () => {
+          try {
+            await this.hub.invoke('racehub', 'GetLastRaceId');
+          } catch (e) {}
+        }, 10000);
       } catch (e) {
         this.connectStatus = `Error: ${e.message}\n\n${this.t('demoHint')}`;
       }
@@ -624,8 +640,15 @@ document.addEventListener('alpine:init', () => {
       this.view = 'race';
       this.requestWakeLock();
 
-      // Initialize demo race
+      // Set a demo track record that will be beaten mid-demo
       const baseLap = 29000 + Math.random() * 2000; // 29-31s base
+      if (!this.settings.trackRecord) {
+        // Set record ~2s faster than early laps but beatable at plateau
+        this.settings.trackRecord = ((baseLap - 3800) / 1000).toFixed(3);
+        this.saveSettings();
+      }
+
+      // Initialize demo race
       this.race.scheduledTime = 600000;
       this.race.timeToGo = 580000;
       this.race.flag = 'Green';
@@ -790,6 +813,16 @@ document.addEventListener('alpine:init', () => {
         }
       } else {
         this.race.isPersonalBest = false;
+      }
+
+      // Track record check
+      const recordMs = parseFloat(this.settings.trackRecord) * 1000;
+      if (recordMs > 0 && lapTime > 0 && lapTime < recordMs && this.race.myLaps > 1) {
+        this.settings.trackRecord = (lapTime / 1000).toFixed(3);
+        this.saveSettings();
+        this.race.showRecordCelebration = true;
+        console.log(`NEW TRACK RECORD: ${this.settings.trackRecord}s`);
+        setTimeout(() => { this.race.showRecordCelebration = false; }, 5000);
       }
 
       // Delta calculation
@@ -957,21 +990,28 @@ document.addEventListener('alpine:init', () => {
       this.saveSettings();
     },
 
+    _resetRaceState() {
+      this.race.lastLap = 0; this.race.bestLap = 0; this.race.avgLap = 0;
+      this.race.avgLast3 = 0; this.race.delta = null; this.race.position = null;
+      this.race.myLaps = 0; this.race.lapHistory = []; this.race.kartNumber = '';
+      this.race.prevLap = 0; this.race.consistency = 0;
+      this.race.scheduledTime = 0; this.race.timeToGo = 0; this.race.progress = 0;
+      this.race.penaltyTime = 0; this.race.penaltyLaps = 0; this.race.isPersonalBest = false;
+      this.race.gapAhead = null; this.race.gapBehind = null;
+      this.race.flag = 'Green'; this.race.showFlagOverlay = false;
+      this.race.showRecordCelebration = false;
+      this.race.flagMessage = ''; this.race.flagType = '';
+      this._competitors = {};
+    },
+
     goToSettings() {
       // Disconnect cleanly
       if (this.hub) { this.hub.disconnect(); this.hub = null; }
       if (this.demoInterval) { clearInterval(this.demoInterval); this.demoInterval = null; }
       if (this.demoLapTimer) { clearTimeout(this.demoLapTimer); this.demoLapTimer = null; }
       if (this.racePoller) { clearInterval(this.racePoller); this.racePoller = null; }
-      // Reset race state
-      this.race.lastLap = 0; this.race.bestLap = 0; this.race.avgLap = 0;
-      this.race.avgLast3 = 0; this.race.delta = null; this.race.position = null;
-      this.race.myLaps = 0; this.race.lapHistory = []; this.race.kartNumber = '';
-      this.race.scheduledTime = 0; this.race.timeToGo = 0; this.race.progress = 0;
-      this.race.penaltyTime = 0; this.race.isPersonalBest = false;
-      this.race.gapAhead = null; this.race.gapBehind = null;
-      this.race.showFlagOverlay = false; this.race.flagMessage = ''; this.race.flagType = '';
-      this.currentRaceId = null; this._competitors = {};
+      this._resetRaceState();
+      this.currentRaceId = null;
       this.view = 'settings';
     },
 

@@ -756,10 +756,16 @@ body.flash-gold { animation: flashGold 0.8s ease-out; }
     padding-left: 0;
     border-top: 1px solid #1a1a1a;
     padding-top: 10px;
-    padding-bottom: 56px;
+    padding-bottom: 10px;
   }
   .ta-stats-panel .stat-divider { display: none; }
-  .ta-lap-chart { display: none; }
+  .ta-lap-chart {
+    width: 80%;
+    max-width: 300px;
+    height: 48px;
+    margin: 0 auto;
+    justify-content: center;
+  }
 
   /* Race portrait */
   .main-race { flex-direction: column; }
@@ -857,3 +863,110 @@ body.flash-gold { animation: flashGold 0.8s ease-out; }
 .github-link { color: #666; }
 .github-link:hover { color: #ccc; }
 .github-icon { flex-shrink: 0; }
+
+/* ─── Track Record field (settings) ─── */
+.record-input-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.record-trophy {
+  font-size: 24px;
+  filter: grayscale(0.3);
+  transition: filter 0.3s, transform 0.3s;
+}
+.record-input-row:focus-within .record-trophy {
+  filter: grayscale(0) drop-shadow(0 0 8px rgba(255, 214, 0, 0.5));
+  transform: scale(1.15);
+}
+.record-input {
+  flex: 1;
+  font-size: 22px !important;
+  letter-spacing: 2px;
+  text-align: center;
+}
+.record-display { display: none; }
+
+/* ─── Track Record celebration (race view) ─── */
+.record-celebration {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  background: radial-gradient(ellipse at center, rgba(255,214,0,0.12) 0%, rgba(0,0,0,0.92) 70%);
+  pointer-events: none;
+}
+
+.record-badge {
+  text-align: center;
+  animation: recordBadgeEntry 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.record-badge-trophy {
+  font-size: 72px;
+  animation: trophyBounce 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  filter: drop-shadow(0 0 30px rgba(255, 214, 0, 0.6));
+}
+.record-badge-label {
+  font-family: var(--font-num);
+  font-size: clamp(16px, 4vw, 28px);
+  font-weight: 700;
+  letter-spacing: 4px;
+  color: var(--gold);
+  text-transform: uppercase;
+  margin-top: 8px;
+  text-shadow: 0 0 20px rgba(255, 214, 0, 0.4);
+}
+.record-badge-time {
+  font-family: var(--font-num);
+  font-size: clamp(36px, 10vw, 72px);
+  font-weight: 700;
+  color: #fff;
+  margin-top: 4px;
+  text-shadow: 0 0 40px rgba(255, 255, 255, 0.3);
+}
+
+@keyframes recordBadgeEntry {
+  0% { transform: scale(0.3); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes trophyBounce {
+  0% { transform: scale(0) rotate(-20deg); }
+  60% { transform: scale(1.2) rotate(5deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+/* Spark particles */
+.record-particles {
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 0; height: 0;
+}
+.record-spark {
+  position: absolute;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--gold);
+  animation: sparkFly 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+  animation-delay: calc(var(--i) * 0.04s);
+  box-shadow: 0 0 8px var(--gold);
+}
+.record-spark:nth-child(odd) { background: #fff; box-shadow: 0 0 8px #fff; width: 4px; height: 4px; }
+.record-spark:nth-child(3n) { background: var(--orange); box-shadow: 0 0 8px var(--orange); width: 8px; height: 8px; }
+
+@keyframes sparkFly {
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform:
+      translate(
+        calc(cos(var(--i) * 18deg) * clamp(80px, 20vw, 200px)),
+        calc(sin(var(--i) * 18deg) * clamp(80px, 20vw, 200px))
+      )
+      scale(0);
+    opacity: 0;
+  }
+}

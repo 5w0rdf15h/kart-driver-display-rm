@@ -65,6 +65,16 @@
         <label><input type="radio" x-model="displayMode" value="race" @change="saveSettings()"> <span x-text="t('modeRace')"></span></label>
       </div>
 
+      <label class="field-label" x-text="t('trackRecord')"></label>
+      <div class="record-input-row">
+        <div class="record-trophy">🏆</div>
+        <input type="text" x-model="settings.trackRecord" :placeholder="t('recordPlaceholder')" class="field-input record-input" autocomplete="off"
+          @input="saveSettings()" inputmode="decimal">
+        <div class="record-display" x-show="settings.trackRecord">
+          <span class="record-value" x-text="settings.trackRecord"></span>
+        </div>
+      </div>
+
       <div class="settings-actions">
         <button @click="saveAndStart()" class="btn-start" :disabled="!settings.name">
           <span x-text="settings.name ? t('start') : t('enterName')"></span>
@@ -99,6 +109,18 @@
     <!-- Flag overlay -->
     <div class="flag-overlay" x-show="race.showFlagOverlay" x-transition :class="'flag-overlay-' + race.flagType">
       <div class="flag-overlay-text" x-text="race.flagMessage"></div>
+    </div>
+
+    <!-- Track record celebration -->
+    <div class="record-celebration" x-show="race.showRecordCelebration" x-transition.opacity.duration.300ms>
+      <div class="record-particles">
+        <template x-for="i in 20"><span class="record-spark" :style="`--i:${i}`"></span></template>
+      </div>
+      <div class="record-badge">
+        <div class="record-badge-trophy">🏆</div>
+        <div class="record-badge-label" x-text="t('newTrackRecord')"></div>
+        <div class="record-badge-time" x-text="formatLap(race.bestLap)"></div>
+      </div>
     </div>
 
     <!-- Top bar -->
